@@ -39,7 +39,7 @@ class TransactionsButton(BaseButton):
 
     def __init__(self, driver):
         super(TransactionsButton, self).__init__(driver)
-        self.locator = self.Locator.xpath_selector('(//android.view.ViewGroup[@content-desc="icon"])[4]')
+        self.locator = self.Locator.xpath_selector('(//android.view.ViewGroup[@content-desc="icon"])[3]')
 
     def navigate(self):
         from views.transactions_view import TransactionsView

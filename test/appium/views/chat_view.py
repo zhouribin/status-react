@@ -56,7 +56,8 @@ class UserNameText(BaseText):
     def __init__(self, driver):
         super(UserNameText, self).__init__(driver)
         self.locator = \
-            self.Locator.xpath_selector("//android.widget.ScrollView//android.widget.TextView")
+            self.Locator.xpath_selector('(//android.view.ViewGroup[@content-desc="toolbar-back-button"]'
+                                        '//..//android.widget.TextView)[1]')
 
 
 class SendCommand(BaseButton):
