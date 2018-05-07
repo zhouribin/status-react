@@ -48,12 +48,12 @@
   [file-name schemas]
   ;; TODO: remove for release 0.9.18
   ;; delete the realm file if its schema version is lower
-  ;; than existing schema version - dirty hotfix for `0.9.17` -> `0.9.18` upgrade 
-  (if (and (realm-version file-name)
-           (< (realm-version file-name)
-              (apply max (map :schemaVersion base/schemas))))
-    (reset-realm file-name schemas)
-    (migrate-realm file-name schemas)))
+  ;; than existing schema version - dirty hotfix for `0.9.17` -> `0.9.18` upgrade
+  (let [version (realm-version file-name)]
+    (if (and (not= -1 version) ;; fresh install
+             (< version (apply max (map :schemaVersion base/schemas))))
+      (reset-realm file-name schemas)
+      (migrate-realm file-name schemas))))
 
 (def new-account-filename "new-account")
 
