@@ -39,25 +39,28 @@
       (close migrated-realm)))
   (open-realm (last schemas) file-name))
 
-(defn reset-realm [file-name schemas]
-  (utils/show-popup "Please note" "You must recover or create a new account with this upgrade. Also chatting with accounts older then `0.9.17` is not possible")
+(defn reset-realm [file-name schemas show-popup?]
+  (when show-popup?
+    (utils/show-popup "Please note" "You must recover or create a new account with this upgrade. Also chatting with accounts older then `0.9.17` is not possible"))
   (delete-realm file-name)
   (open-realm (last schemas) file-name))
 
 (defn open-migrated-realm
-  [file-name schemas]
   ;; TODO: remove for release 0.9.18
   ;; delete the realm file if its schema version is lower
   ;; than existing schema version - dirty hotfix for `0.9.17` -> `0.9.18` upgrade
-  (let [version (realm-version file-name)]
-    (if (and (not= -1 version) ;; fresh install
-             (< version (apply max (map :schemaVersion base/schemas))))
-      (reset-realm file-name schemas)
-      (migrate-realm file-name schemas))))
+  ([file-name schemas]
+   (open-migrated-realm file-name schemas false))
+  ([file-name schemas show-popup?] 
+   (let [version (realm-version file-name)]
+     (if (and (not= -1 version) ;; fresh install
+              (< version (apply max (map :schemaVersion base/schemas))))
+       (reset-realm file-name schemas show-popup?)
+       (migrate-realm file-name schemas)))))
 
 (def new-account-filename "new-account")
 
-(def base-realm (open-migrated-realm (.-defaultPath rn-dependencies/realm) base/schemas))
+(def base-realm (open-migrated-realm (.-defaultPath rn-dependencies/realm) base/schemas true))
 
 (def account-realm (atom (open-migrated-realm new-account-filename account/schemas)))
 
