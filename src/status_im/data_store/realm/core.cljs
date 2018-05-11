@@ -41,7 +41,7 @@
 
 (defn reset-realm [file-name schemas show-popup?]
   (when show-popup?
-    (utils/show-popup "Please note" "You must recover or create a new account with this upgrade. Also chatting with accounts older then `0.9.17` is not possible"))
+    (utils/show-popup "Thank you for updating to 0.9.18" "With this upgrade you must recover an existing account or create a new one. Chatting with accounts running 0.9.16 or earlier is no longer possible"))
   (delete-realm file-name)
   (open-realm (last schemas) file-name))
 
