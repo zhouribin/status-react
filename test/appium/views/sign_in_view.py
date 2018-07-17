@@ -112,9 +112,6 @@ class SignInView(BaseView):
         self.add_existing_account_button = AddExistingAccountButton(self.driver)
         self.confirm_password_input = ConfirmPasswordInput(self.driver)
         self.name_input = NameInput(self.driver)
-        self.learn_more_link = LearnMoreLink(self.driver)
-        self.share_data_button = ShareDataButton(self.driver)
-        self.do_not_share_button = DonNotShareButton(self.driver)
 
     def create_user(self, username: str = '', password=common_password):
         self.create_account_button.click()
@@ -129,8 +126,6 @@ class SignInView(BaseView):
         self.confirm()
 
         self.next_button.click()
-        self.do_not_share_button.wait_for_visibility_of_element(10)
-        self.do_not_share_button.click_until_presence_of_element(self.home_button)
         return self.get_home_view()
 
     def recover_access(self, passphrase, password):
@@ -140,8 +135,6 @@ class SignInView(BaseView):
         recover_access_view.password_input.click()
         recover_access_view.send_as_keyevent(password)
         recover_access_view.sign_in_button.click()
-        self.do_not_share_button.wait_for_element(10)
-        self.do_not_share_button.click_until_presence_of_element(self.home_button)
         return self.get_home_view()
 
     def open_status_test_dapp(self):
