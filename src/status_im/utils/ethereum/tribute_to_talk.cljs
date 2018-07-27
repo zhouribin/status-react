@@ -4,25 +4,27 @@
             [status-im.utils.money :as money])
   (:require-macros [status-im.utils.slurp :refer [slurp]]))
 
-(def ttt-abi (.-abi (.parse js/JSON (slurp "./src/status_im/utils/ethereum/tribute_to_talk.json"))))
-
-(def ttt-contract-address "0x13e6db69307f408bbdcd2871f9297cca9e78b549")
-
-(def my-address "0x1b43868a6bce7779be4c75fe6d4d80ddb10a7fd0")
-
+(def web3 (:web3 @re-frame.db/app-db))
+(def contract-address "0x13e6db69307f408bbdcd2871f9297cca9e78b549")
+(def my-address (:public-key (:account/account @re-frame.db/app-db)))
 (def ttt "0xca9e734f6f3f78efd1b87671bcdc7f17a6e2b185")
 
-(def ttt-contract (.at (.contract (.-eth (:web3 @re-frame.db/app-db))
-                                  ttt-abi)
-                       ttt-contract-address))
+(defn set-required-tribute [web3 contract address amount permanent? cb]
+  (ethereum/send-transaction web3
+                             (ethereum/call-params contract
+                                                   "setRequiredTribute(address,uint256,bool)"
+                                                   ;; applies to everyone
+                                                   (ethereum/normalized-address "0x0000000000000000000000000000000000000000")
+                                                   (ethereum/int->hex amount)
+                                                   (ethereum/boolean->hex permanent?))
+                             (fn [_ transaction-id] (cb transaction-id))))
 
-(defn set-required-tribute [amount permanent? cb]
-  (.setRequiredTribute ttt-contract "0x0000000000000000000000000000000000000000" amount permanent?
-                       (fn [_ transaction-id] (cb transaction-id))))
-
-(defn get-required-fee [contact-address cb]
-  (.getRequiredFee ttt-contract contact-address
-                   (fn [_ fee] (cb fee))))
+(defn get-required-fee [web3 contract address cb]
+  (ethereum/call web3
+                 (ethereum/call-params contract
+                                       "getRequiredFee(address)"
+                                       (ethereum/normalized-address address))
+                 (fn [_ fee] (cb (ethereum/hex->bignumber fee)))))
 
 (defn grantAudience [web3 contract approve? waive? secret time-limit requester-signature grantor-signature cb]
   (ethereum/call web3
@@ -63,6 +65,5 @@
                                        (ethereum/normalized-address to-address))
                  cb))
 
-#_(set-required-tribute 200 true println)
-
-#_(get-required-fee ttt println)
+#_(set-required-tribute web3 contract-address my-address 200 true println)
+#_(get-required-fee web3 contract-address ttt println)
