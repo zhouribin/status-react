@@ -1,0 +1,157 @@
+properties([
+  buildDiscarder(logRotator(
+    numToKeepStr: '2',
+    daysToKeepStr: '3',
+    artifactNumToKeepStr: '2',
+    artifactDaysToKeepStr: '3'
+  ))
+])
+
+env.LANG = 'en_US.UTF-8'
+env.LANGUAGE = 'en_US.UTF-8'
+env.LC_ALL = 'en_US.UTF-8'
+env.PKG_DIR = "StatusImPackage"
+
+apkUrl = ''
+ipaUrl = ''
+testPassed = true
+scriptOutput = ''
+external_modules_dir = [
+  'node_modules/react-native-i18n/desktop',
+  'node_modules/react-native-config/desktop',
+  'node_modules/react-native-fs/desktop',
+  'node_modules/react-native-http-bridge/desktop',
+  'node_modules/react-native-webview-bridge/desktop',
+  'node_modules/react-native-keychain/desktop',
+  'node_modules/react-native-securerandom/desktop',
+  'modules/react-native-status/desktop',
+]
+
+
+parallel(
+  //'MacOS build': {
+  //  timeout(90) {
+  //    node('macos') {
+  //      load "$HOME/env.groovy"
+  //      lib = load "${workspace}/ci/desktop/lib.groovy"
+
+  //      try {
+  //        stage('Git & Deps') {
+  //          lib.slackNotify('MacOS build started.')
+  //          checkout scm
+  //          lib.doGitRebase(branch: 'origin/develop')
+  //          lib.cleanupAndDeps()
+  //        }
+
+  //        stage('Build ClojureScript') {
+  //          lib.buildClosureScript()
+  //        }
+
+  //        stage('Build MacOS binaries') {
+  //          lib.buildMacOS(
+  //            external_modules_dir: external_modules_dir
+  //          )
+  //        }
+
+  //        stage('Create MacOS Bundle') {
+  //          lib.createMacOSbundle()
+  //        }
+
+  //        stage('Archive Artifact') {
+  //          archiveArtifacts "${env.PKG_DIR}/*.dmg"
+  //        }
+
+  //        lib.slackNotify('MacOS build finished successfully.')
+  //      } catch (e) {
+  //        lib.slackNotify('Failed to build on MacOS.', color: 'bad')
+  //        throw e
+  //      } finally {
+  //        lib.cleanupBuild()
+  //      }
+  //    }
+  //  }
+  //},
+  'Linux build': {
+    timeout(90) {
+      node ('linux') {
+        lib = load "${workspace}/ci/desktop/lib.groovy"
+        def qt_bin = '/opt/qt59/bin'
+
+        try {
+          stage('Git & Deps') {
+            lib.slackNotify(message: 'Linux build started.')
+            checkout scm
+            lib.doGitRebase('origin/develop')
+            lib.cleanupAndDeps
+          }
+
+          stage('Build ClojureScript') {
+            buildClojureScript
+          }
+
+          stage('Build Linux binaries') {
+            lib.buildLinux(
+              qt_bin: qt_bin,
+              external_modules_dir: external_modules_dir
+            )
+          }
+
+          stage('Create Linux AppImage') {
+            dir(env.PKG_DIR) {
+              sh 'rm -rf StatusImAppImage'
+              /* TODO this needs to be fixed: status-react/issues/5378 */
+              sh 'cp /opt/StatusImAppImage.zip ./'
+              sh 'unzip ./StatusImAppImage.zip'
+              sh 'rm -rf AppDir'
+              sh 'mkdir AppDir'
+            }
+            sh "cp -r ./deployment/linux/usr  ${env.PKG_DIR}/AppDir"
+            sh "cp ./deployment/linux/.env  ${env.PKG_DIR}/AppDir"
+            sh "cp ./desktop/bin/StatusIm ${env.PKG_DIR}/AppDir/usr/bin"
+            sh 'wget https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage'
+            sh 'chmod a+x ./linuxdeployqt-continuous-x86_64.AppImage'
+
+            sh 'rm -f Application-x86_64.AppImage'
+            sh 'rm -f StatusIm-x86_64.AppImage'
+
+            sh "ldd ${env.PKG_DIR}/AppDir/usr/bin/StatusIm"
+            sh """
+              ./linuxdeployqt-continuous-x86_64.AppImage \\
+                ${env.PKG_DIR}/AppDir/usr/share/applications/StatusIm.desktop \\
+                -verbose=3 -always-overwrite -no-strip \\
+                -no-translations -bundle-non-qt-libs \\
+                -qmake=${qt_bin}/qmake \\
+                -extra-plugins=imageformats/libqsvg.so \\
+                -qmldir='${workspace}/node_modules/react-native'
+            """
+            dir(env.PKG_DIR) {
+              sh 'ldd AppDir/usr/bin/StatusIm'
+              sh 'cp -r assets/share/assets AppDir/usr/bin'
+              sh 'cp -rf StatusImAppImage/* AppDir/usr/bin'
+              sh 'rm -f AppDir/usr/bin/StatusIm.AppImage'
+              sh """
+                ../linuxdeployqt-continuous-x86_64.AppImage \\
+                  AppDir/usr/share/applications/StatusIm.desktop \\
+                  -verbose=3 -appimage -qmake=${qt_bin}/qmake
+              """
+              sh 'ldd AppDir/usr/bin/StatusIm'
+              sh 'rm -rf StatusIm.AppImage'
+              sh 'cp -f ../StatusIm-x86_64.AppImage StatusIm.AppImage'
+            }
+          }
+
+          stage('Archive Artifact') {
+            archiveArtifacts "${env.PKG_DIR}/*.AppImage"
+          }
+
+          lib.slackNotify(message: 'Linux build finished successfully.')
+        } catch (e) {
+          lib.slackNotify(message: 'Failed to build on Linux.', color: 'bad')
+          throw e
+        } finally {
+          lib.cleanupBuild()
+        }
+      }
+    }
+  }
+)
