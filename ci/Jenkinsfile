@@ -1,123 +1,72 @@
-properties([
-  buildDiscarder(logRotator(
-    numToKeepStr: '3',
-    daysToKeepStr: '7',
-  ))
-])
+pipeline {
+  agent { label 'master' }
 
-env.LANG="en_US.UTF-8"
-env.LANGUAGE="en_US.UTF-8"
-env.LC_ALL="en_US.UTF-8"
-env.FASTLANE_DISABLE_COLORS=1
-
-def installJSDeps() {
-    def attempt = 1
-    def maxAttempts = 10
-    def installed = false
-    while (!installed && attempt <= maxAttempts) {
-        println "#${attempt} attempt to install npm deps"
-        sh 'scripts/prepare-for-platform.sh mobile'
-        sh 'npm install'
-        installed = fileExists('node_modules/web3/index.js')
-        attemp = attempt + 1
+  options {
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(
+      numToKeepStr: '10',
+      daysToKeepStr: '14',
+      artifactNumToKeepStr: '10',
+    ))
+  }
+  
+  stages {
+    stage('Tag') {
+      steps { script {
+        cmn = load('ci/common.groovy')
+        /* to avoid missing build tag parallel builds */
+        print "Build Number: ${cmn.tagBuild(true)}"
+      } }
     }
-}
-
-timeout(90) {
-    node ('fastlane') {
-      load "$HOME/env.groovy"
-
-      try {
-        stage('Git & Dependencies') {
-          slackSend color: 'good', message: BRANCH_NAME + '(' + env.CHANGE_BRANCH + ') build started. ' + env.BUILD_URL
-
-          checkout scm
-
-          try {
-            sh 'git rebase origin/develop'
-          } catch (e) {
-            sh 'git rebase --abort'
-            throw e
-          }
-
-          sh 'rm -rf node_modules'
-          sh 'cp .env.jenkins .env'
-
-          installJSDeps()
-
-          sh 'mvn -f modules/react-native-status/ios/RCTStatus dependency:unpack'
-          sh 'cd ios && pod install && cd ..'
-        }
-        stage('Code style checks') {
-            sh 'lein cljfmt check'
-        }
-
-        stage('Tests') {
-          sh 'lein test-cljs'
-        }
-
-        stage('Build') {
-          sh 'lein prod-build'
-        }
-
-        // Android
-        stage('Build (Android)') {
-          sh 'cd android && ./gradlew react-native-android:installArchives && ./gradlew assembleRelease'
-        }
-
-        stage('Deploy (Android)') {
-          withCredentials([
-              string(credentialsId: 'diawi-token', variable: 'DIAWI_TOKEN'),
-              string(credentialsId: 'GIT_HUB_TOKEN', variable: 'GITHUB_TOKEN'),
-              string(credentialsId: 'SLACK_JENKINS_WEBHOOK', variable: 'SLACK_URL')
-          ]) {
-            sh 'fastlane android upload_diawi'
-          }
-        }
-
-        // iOS
-        stage('Build (iOS)') {
-          withCredentials([
-              string(credentialsId: "slave-pass-${env.NODE_NAME}", variable: 'KEYCHAIN_PASSWORD'),
-              string(credentialsId: 'fastlane-match-password', variable:'MATCH_PASSWORD')]) {
-            sh 'fastlane ios adhoc'
-          }
-        }
-
-        stage('Deploy (iOS)') {
-          withCredentials([
-              string(credentialsId: 'diawi-token', variable: 'DIAWI_TOKEN'),
-              string(credentialsId: 'GIT_HUB_TOKEN', variable: 'GITHUB_TOKEN'),
-              string(credentialsId: 'SLACK_JENKINS_WEBHOOK', variable: 'SLACK_URL')
-          ]) {
-            sh 'fastlane ios upload_diawi'
-          }
-        }
-
-        // Android for e2e
-        stage('Build (Android) for e2e tests') {
-          sh 'cd android && mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/app-release.original.apk && ENVFILE=.env.e2e ./gradlew assembleRelease'
-        }
-
-        stage('Upload apk for e2e tests') {
-          if (env.CHANGE_ID != null) {
-              env.SAUCE_LABS_APK = env.CHANGE_ID + '.apk'
-              withCredentials([
-                  string(credentialsId: 'SAUCE_ACCESS_KEY', variable: 'SAUCE_ACCESS_KEY'),
-                  string(credentialsId: 'SAUCE_USERNAME', variable: 'SAUCE_USERNAME'),
-                  string(credentialsId: 'diawi-token', variable: 'DIAWI_TOKEN'),
-                  string(credentialsId: 'GIT_HUB_TOKEN', variable: 'GITHUB_TOKEN'),
-                  string(credentialsId: 'SLACK_JENKINS_WEBHOOK', variable: 'SLACK_URL')
-              ]) {
-                sh 'fastlane android saucelabs'
-                sh 'fastlane android upload_diawi'
-              }
-          }
-        }
-
-      } catch (e) {
-        slackSend color: 'bad', message: BRANCH_NAME + ' failed to build. ' + env.BUILD_URL
-        throw e
+    stage('Build') {
+      parallel {
+        stage('MacOS') { steps { script {
+          osx = cmn.buildBranch('status-react/combined/desktop-macos', )
+        } } }
+        stage('Linux') { steps { script {
+          nix = cmn.buildBranch('status-react/combined/desktop-linux')
+        } } }
+        stage('iOS') { steps { script {
+          ios = cmn.buildBranch('status-react/combined/mobile-ios')
+        } } }
+        stage('Android') { steps { script {
+          dro = cmn.buildBranch('status-react/combined/mobile-android')
+        } } }
+        stage('Android e2e') { steps { script {
+          e2e = cmn.buildBranch('status-react/combined/mobile-android', 'e2e')
+        } } }
       }
     }
+    stage('Archive') {
+      steps { script {
+        sh('rm -f pkg/*')
+        cmn.copyArts('status-react/combined/desktop-macos', osx.number)
+        cmn.copyArts('status-react/combined/desktop-linux', nix.number)
+        cmn.copyArts('status-react/combined/mobile-android', dro.number)
+        cmn.copyArts('status-react/combined/mobile-android', e2e.number)
+        archiveArtifacts('pkg/*')
+      } }
+    }
+    stage('Notify') {
+      steps { script {
+        /* special case for iOS Diawi links */
+        ipaUrl = ios.getBuildVariables().get('DIAWI_URL')
+        apkUrl = dro.getBuildVariables().get('DIAWI_URL')
+        slackSend(
+          message: (
+            (env.CHANGE_ID != null ?
+              "Build PR #${BRANCH_NAME}(${CHANGE_BRANCH}) success! " :
+              "Build ${params.BUILD_TYPE} success! "
+            )+
+            "<${currentBuild.absoluteUrl}|${currentBuild.displayName}> "+
+            "(${currentBuild.durationString})\n"+
+            "Packages: "+
+            "<${apkUrl}|Android>, "+
+            "<${ipaUrl}|iOS>"
+          ),
+          color: 'good'
+        )
+      } }
+    }
+  }
 }
