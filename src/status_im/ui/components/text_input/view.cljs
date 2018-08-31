@@ -16,12 +16,9 @@
       {:style                  (merge styles/input style)
        :placeholder-text-color colors/gray
        :auto-focus             true
+       :value text
        :auto-capitalize        :none}
-      (dissoc props :style :height)
-      ;; Workaround until `value` TextInput field is available on desktop:
-      ;; https://github.com/status-im/react-native-desktop/issues/320
-      (when-not platform/desktop?
-        {:value text}))]
+      (dissoc props :style :height))]
     (when content content)]
    (when error
      [tooltip/tooltip error (styles/error label)])])
