@@ -151,7 +151,15 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         return null;
     }
 
-    private String generateConfig(final String dataDir, final int networkId, final String keystoreDir, final String fleet, final Object upstreamConfig) throws JSONException {
+    private String generateConfig(final JSONObject defaultConfig, final String root, final String keystoreDir, final String fleet) throws JSONException {
+        // retrieve parameters from app config, that will be applied onto the Go-side config later on
+        final String dataDir = root + defaultConfig.get("DataDir");
+        final int networkId = defaultConfig.getInt("NetworkId");
+        final Object upstreamConfig = defaultConfig.opt("UpstreamConfig");
+        final Boolean logEnabled = defaultConfig.getBoolean("LogEnabled");
+        final String logLevel = defaultConfig.getString("LogLevel");
+
+        // retrieve config from Go side, in order to use as the basis of the config
         JSONObject jsonConfig = new JSONObject(
             Statusgo.GenerateConfig(dataDir, fleet, networkId));
 
@@ -164,8 +172,10 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
             jsonConfig.put("UpstreamConfig", upstreamConfig);
         }
 
-        final String gethLogFilePath = prepareLogsFile();
+        final String gethLogFilePath = logEnabled ? null : prepareLogsFile();
+        jsonConfig.put("LogEnabled", logEnabled);
         jsonConfig.put("LogFile", gethLogFilePath);
+        jsonConfig.put("LogLevel", TextUtils.isEmpty(logLevel) ? "ERROR" : logLevel);
 
         // Setting up whisper config
         JSONObject whisperConfig = jsonConfig.optJSONObject("WhisperConfig");
@@ -189,18 +199,11 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         return jsonConfig.toString();
     }
 
-
     private String generateConfigFromDefaultConfig(final String root, final String keystoreDir, final String fleet, final String defaultConfig) {
         try {
             JSONObject customConfig = new JSONObject(defaultConfig);
 
-            // parameters from config
-            final String dataDir = root + customConfig.get("DataDir");
-            final int networkId = customConfig.getInt("NetworkId");
-            final Object upstreamConfig = customConfig.opt("UpstreamConfig");
-
-            return generateConfig(dataDir, networkId, keystoreDir, fleet, upstreamConfig);
-
+            return generateConfig(customConfig, root, keystoreDir, fleet);
         } catch (JSONException e) {
             Log.d(TAG, "Something went wrong " + e.getMessage());
             Log.d(TAG, "Default configuration will be used: ropsten, beta fleet");
