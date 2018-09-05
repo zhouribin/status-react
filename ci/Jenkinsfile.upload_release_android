@@ -47,7 +47,7 @@ timeout(90) {
 
         stage('Download the APK') {
           // downloading the file for release
-          sh "curl -o app-release.apk ${BRANCH_NAME}"
+          sh "curl -o app-release.apk ${APK_PATH}"
         }
 
         stage('Deploy (Android)') {
