@@ -182,7 +182,7 @@ platform :android do
     desc "expects GOOGLE_PLAY_JSON_KEY environment variable"
     upload_to_play_store(
       track: "alpha",
-      apk: "android/app/build/outputs/apk/release/app-release.apk",
+      apk: "app-release.apk",
       json_key_data: ENV["GOOGLE_PLAY_JSON_KEY"]
     )
     slack(

@@ -30,11 +30,6 @@ timeout(90) {
 
         stage('Git & Dependencies') {
           slackSend color: 'good', message: BRANCH_NAME + ' build started. ' + env.BUILD_URL
-
-          if (!BRANCH_NAME.startsWith("release/")){
-            error "Wrong branch name format: " + BRANCH_NAME + ", but it should be `release/version`"
-          }
-
           checkout scm
 
           sh 'git fetch --tags'
@@ -50,30 +45,9 @@ timeout(90) {
           sh 'cd ios && pod install && cd ..'
         }
 
-        stage('Tag Build') {
-          withCredentials([[
-            $class: 'UsernamePasswordMultiBinding',
-            credentialsId: 'status-im-auto',
-            usernameVariable: 'GIT_USER',
-            passwordVariable: 'GIT_PASS'
-          ]]) {
-            build_no = sh(
-              returnStdout: true,
-              script: './scripts/build_no.sh --increment'
-            ).trim()
-          }
-        }
-
-        stage('Tests') {
-          sh 'lein test-cljs'
-        }
-
-        stage('Build') {
-          sh 'lein prod-build'
-        }
-
-        stage('Build (Android)') {
-          sh 'cd android && ./gradlew react-native-android:installArchives && ./gradlew assembleRelease -PreleaseVersion=' + version
+        stage('Download the APK') {
+          // downloading the file for release
+          sh "curl -o app-release.apk ${BRANCH_NAME}"
         }
 
         stage('Deploy (Android)') {
@@ -87,7 +61,7 @@ timeout(90) {
                 variable: 'SLACK_URL'
               )
           ]) {
-              sh ('bundle exec fastlane android release')
+              //sh ('bundle exec fastlane android release')
           }
         }
       } catch (e) {
