@@ -61,7 +61,7 @@ timeout(90) {
                 variable: 'SLACK_URL'
               )
           ]) {
-              //sh ('bundle exec fastlane android release')
+              sh ('bundle exec fastlane android release')
           }
         }
       } catch (e) {
