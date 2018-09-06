@@ -157,7 +157,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         final int networkId = defaultConfig.getInt("NetworkId");
         final Object upstreamConfig = defaultConfig.opt("UpstreamConfig");
         final Boolean logEnabled = defaultConfig.getBoolean("LogEnabled");
-        final String logLevel = defaultConfig.getString("LogLevel");
+        final String logLevel = defaultConfig.optString("LogLevel", "ERROR");
 
         // retrieve config from Go side, in order to use as the basis of the config
         JSONObject jsonConfig = new JSONObject(
