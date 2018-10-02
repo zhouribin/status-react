@@ -46,9 +46,9 @@
 
 (deftype MessageHandler []
   Object
-  (tag [this v] "c7")
-  (rep [this {:keys [content content-type message-type clock-value timestamp]}]
-    #js [content content-type message-type clock-value timestamp]))
+  (tag [this v] "c4")
+  (rep [this {:keys [text-content content content-type message-type clock-value timestamp]}]
+    #js [text-content content-type message-type clock-value timestamp content]))
 
 (deftype MessagesSeenHandler []
   Object
@@ -93,6 +93,20 @@
       {:text (str content)})
     content))
 
+(defn ensure-text-content [{:keys [content-type text-content] :as message}]
+  (if (= content-type constants/text-content-type)
+    (if (and (map? text-content) (string? (:text text-content)))
+      ;; correctly formatted map
+      (assoc message :text-content (:text text-content))
+      ;; create safe `{:text string-content}` value from anything else
+      message)))
+
+
+(defn- ensure-content [{:keys [text-content content content-type] :as message}]
+  (if (:text content)
+    message
+    (assoc message :content (safe-content-parse content-type text-content))))
+
 ;; Here we only need to call the record with the arguments parsed from the clojure datastructures
 (def reader (transit/reader :json
                             {:handlers
@@ -102,10 +116,14 @@
                                      (v1.contact/ContactRequest. name profile-image address fcm-token))
                               "c3" (fn [[name profile-image address fcm-token]]
                                      (v1.contact/ContactRequestConfirmed. name profile-image address fcm-token))
-                              "c4" (fn [[content content-type message-type clock-value timestamp]]
-                                     (v1.protocol/Message. (safe-content-parse content-type content) content-type message-type clock-value timestamp))
-                              "c7" (fn [[content content-type message-type clock-value timestamp]]
-                                     (v1.protocol/Message. (safe-content-parse content-type content) content-type message-type clock-value timestamp))
+                              "c4" (fn [[text-content content-type message-type clock-value timestamp content]]
+                                     (-> (v1.protocol/Message. (safe-content-parse content-type text-content) content-type message-type clock-value timestamp content)
+                                         (ensure-content)
+                                         (ensure-text-content)))
+                              "c7" (fn [[text-content content-type message-type clock-value timestamp content]]
+                                     (-> (v1.protocol/Message. (safe-content-parse content-type text-content) content-type message-type clock-value timestamp content)
+                                         (ensure-content)
+                                         (ensure-text-content)))
                               "c5" (fn [message-ids]
                                      (v1.protocol/MessagesSeen. message-ids))
                               "c6" (fn [[name profile-image address fcm-token]]

@@ -73,7 +73,7 @@
                                         :topic   (transport.utils/get-topic constants/contact-discovery)}
                                        whisper-opts)}]}))
 
-(defrecord Message [content content-type message-type clock-value timestamp]
+(defrecord Message [text-content content-type message-type clock-value timestamp content]
   message/StatusMessage
   (send [this chat-id cofx]
     (let [params     {:chat-id       chat-id

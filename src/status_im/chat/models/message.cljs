@@ -233,7 +233,7 @@
     (and group-chat (not public?))
     (assoc :message-type :group-user-message)))
 
-(def ^:private transport-keys [:content :content-type :message-type :clock-value :timestamp])
+(def ^:private transport-keys [:text-content :content-type :message-type :clock-value :timestamp :content])
 
 (fx/defn upsert-and-send [{:keys [now] :as cofx} {:keys [chat-id] :as message}]
   (let [send-record     (protocol/map->Message (select-keys message transport-keys))
@@ -298,15 +298,16 @@
             (remove-message-from-group chat-id (get-in db [:chats chat-id :messages message-id]))))
 
 (fx/defn send-message
-  [{:keys [db now] :as cofx} {:keys [chat-id] :as message}]
+  [{:keys [db now] :as cofx} {:keys [chat-id content] :as message}]
   (let [{:keys [current-public-key chats]}  db
         {:keys [last-clock-value] :as chat} (get chats chat-id)
         message-data                        (-> message
-                                                (assoc :from        current-public-key
-                                                       :timestamp   now
-                                                       :clock-value (utils.clocks/send
-                                                                     last-clock-value)
-                                                       :show?       true)
+                                                (assoc :from         current-public-key
+                                                       :timestamp    now
+                                                       :text-content (:text content)
+                                                       :clock-value  (utils.clocks/send
+                                                                      last-clock-value)
+                                                       :show?        true)
                                                 (add-message-type chat))]
     (upsert-and-send cofx message-data)))
 
