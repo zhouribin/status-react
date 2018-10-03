@@ -1,6 +1,7 @@
 (ns status-im.ui.screens.desktop.main.chat.events
   (:require [re-frame.core :as re-frame]
             [status-im.ui.screens.navigation :as navigation]
+            [status-im.ui.components.context-menu.view :as context-menu]
             [status-im.utils.handlers :as handlers]
             [status-im.utils.fx :as fx]))
 
@@ -13,3 +14,8 @@
  :show-profile-desktop
  (fn [cofx [_ identity]]
    (show-profile-desktop identity cofx)))
+
+(handlers/register-handler-fx
+ :show-context-menu
+ (fn [cofx]
+   (context-menu/show {:text "Heeey"})))

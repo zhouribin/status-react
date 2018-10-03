@@ -59,14 +59,14 @@
      [react/view
       (when (and (not group-chat) (not public?))
         [react/text {:style (styles/profile-actions-text colors/black)
-                     :on-press #(re-frame/dispatch [:show-profile-desktop whisper-identity])}
+                     :on-press #(re-frame/dispatch [:show-context-menu])}
          (i18n/label :t/view-profile)])
       (when (and group-chat (not public?))
         [react/text {:style (styles/profile-actions-text colors/black)
                      :on-press #(re-frame/dispatch [:show-group-chat-profile])}
          (i18n/label :t/group-info)])
       [react/text {:style (styles/profile-actions-text colors/black)
-                   :on-press #(re-frame/dispatch [:chat.ui/clear-history-pressed])}
+                   :on-press #(re-frame/dispatch [:show-context-menu])}
        (i18n/label :t/clear-history)]
       [react/text {:style (styles/profile-actions-text colors/black)
                    :on-press #(re-frame/dispatch [:chat.ui/remove-chat-pressed chat-id])}

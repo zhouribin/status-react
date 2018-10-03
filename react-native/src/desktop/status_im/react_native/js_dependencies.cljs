@@ -29,3 +29,4 @@
 (def snoopy-buffer          #js {})
 (def background-timer       #js {:setTimeout (fn [cb ms] (js/setTimeout cb ms))})
 (def react-navigation       #js {:NavigationActions #js {}})
+(def context-menu           (js/require "react-native-qt-context-menu"))
