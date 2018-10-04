@@ -23,7 +23,6 @@
     "../../../../../resources/fonts/SF-Pro-Text-Medium.otf",
     "../../../../../resources/fonts/SF-Pro-Text-Light.otf"
   ],
-  "desktopJSBundlePath": "/home/max/work/status-react-desktop/status-react6/status-react/StatusImPackage/StatusIm.jsbundle",
   "dependencies": {
     "@babel/core": "7.0.1",
     "@babel/generator": "7.0.0",
