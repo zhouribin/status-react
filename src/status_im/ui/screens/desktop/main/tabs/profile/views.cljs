@@ -101,7 +101,7 @@
                   editing?        [:get :my-profile/editing?]] ;; TODO janherich: refactor my-profile, unnecessary complicated structure in db (could be just `:staged-name`/`:editing?` fields in account map) and horrible way to access it woth `:get`/`:set` subs/events
     (let [adv-settings-open?           (= current-view-id :advanced-settings)
           backup-recovery-phrase-open? (= current-view-id :backup-recovery-phrase)
-          notifications? (get-in user [:desktop-notifications?])
+          notifications?               (get-in user [:desktop-notifications?])
           show-backup-seed?            (and (not seed-backed-up?) (not (string/blank? mnemonic)))]
       [react/view
        [react/view {:style styles/profile-edit}
