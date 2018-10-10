@@ -116,7 +116,7 @@
    (accounts/switch-dev-mode cofx dev-mode?)))
 
 (handlers/register-handler-fx
- :accounts.ui/enable-notifications
+ :accounts.ui/notifications-enabled
  (fn [cofx [_ desktop-notifications?]]
    (accounts/enable-notifications cofx desktop-notifications?)))
 

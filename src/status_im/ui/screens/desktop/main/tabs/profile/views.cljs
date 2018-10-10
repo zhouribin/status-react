@@ -124,7 +124,7 @@
          [react/text {:style (styles/profile-row-text colors/black)} (i18n/label :notifications)]
          [react/switch {:on-tint-color   colors/blue
                         :value           notifications?
-                        :on-value-change #(re-frame/dispatch [:accounts.ui/enable-notifications (not notifications?)])}]]
+                        :on-value-change #(re-frame/dispatch [:accounts.ui/notifications-enabled (not notifications?)])}]]
         [react/touchable-highlight {:style  (styles/profile-row adv-settings-open?)
                                     :on-press #(re-frame/dispatch [:navigate-to (if adv-settings-open? :home :advanced-settings)])}
          [react/view {:style styles/adv-settings}
