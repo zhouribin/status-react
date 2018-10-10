@@ -128,7 +128,7 @@ function buildClojureScript() {
 
 function compile() {
   pushd desktop
-    rm -rf CMakeFiles CMakeCache.txt cmake_install.cmake Makefile
+    rm -rf CMakeFiles CMakeCache.txt cmake_install.cmake Makefile modules
     cmake -Wno-dev \
           -DCMAKE_BUILD_TYPE=Release \
           -DEXTERNAL_MODULES_DIR="$(joinStrings ${external_modules_dir[@]})" \
