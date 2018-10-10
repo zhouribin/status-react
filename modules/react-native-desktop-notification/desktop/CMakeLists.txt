@@ -22,7 +22,6 @@ ExternalProject_Add(SnoreNotify_ep
   GIT_REPOSITORY https://github.com/status-im/snorenotify.git
   CMAKE_ARGS ${SnoreNotify_CMAKE_ARGS}
   BUILD_BYPRODUCTS ${SnoreNotify_SHARED_LIB}
-  LOG_BUILD 1
   LOG_DOWNLOAD 1
 )
 
