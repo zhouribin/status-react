@@ -9,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string>status-icon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.status.statusim</string>
+	<string>im.status.statusim</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
