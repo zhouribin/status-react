@@ -253,15 +253,15 @@ function bundleMacOS() {
     cp -f ../deployment/macos/Info.plist Status.app/Contents
     cp -f ../deployment/macos/status-icon.icns Status.app/Contents/Resources
     # cp -rf ../desktop/modules/react-native-desktop-notification/desktop/SnoreNotify_ep-prefix/src/SnoreNotify_ep/lib Status.app/Contents
-    # install_name_tool -change \
-    #              ${STATUSREACTPATH}/desktop/modules/react-native-desktop-notification/desktop/SnoreNotify_ep-prefix/src/SnoreNotify_ep/lib/libsnore-qt5.0.7.dylib @rpath/libsnore-qt5.0.7.dylib \
-    #              ${WORKFOLDER}/Status.app/Contents/lib/plugins/libsnore-qt5/libsnore_backend_osxnotificationcenter.so
+    install_name_tool -change \
+                  ${STATUSREACTPATH}/desktop/modules/react-native-desktop-notification/desktop/SnoreNotify_ep-prefix/src/SnoreNotify_ep/lib/libsnore-qt5.0.7.dylib @rpath/libsnore-qt5.0.7.dylib \
+                  ${WORKFOLDER}/Status.app/Contents/lib/plugins/libsnore-qt5/libsnore_backend_osxnotificationcenter.so
     $DEPLOYQT Status.app -verbose=$VERBOSE_LEVEL \
       -qmldir="$STATUSREACTPATH/node_modules/react-native/ReactQt/runtime/src/qml/"
     ls -l
     ls -l Status.app/Contents/Frameworks
-    rm -rf Status.app/Contents/Frameworks/libsnore-qt5.0.7.dylib
-    ls -l Status.app/Contents/Frameworks
+    # rm -rf Status.app/Contents/Frameworks/libsnore-qt5.0.7.dylib
+    # ls -l Status.app/Contents/Frameworks
     rm -f Status.app.zip
   popd
 
