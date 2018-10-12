@@ -261,7 +261,7 @@ function bundleMacOS() {
     otool -L Status.app/Contents/MacOS/Status
     install_name_tool -change \
                   @executable_path/../Frameworks/libsnore-qt5.0.7.dylib @rpath/libsnore-qt5.0.7.dylib \
-                  ${WORKFOLDER}/Status.app/Contents/lib/plugins/libsnore-qt5/libsnore_backend_osxnotificationcenter.so
+                  Status.app/Contents/MacOS/Status
     otool -L Status.app/Contents/MacOS/Status
     ls -l
     ls -l Status.app/Contents/Frameworks
