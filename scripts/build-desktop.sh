@@ -258,6 +258,10 @@ function bundleMacOS() {
     #              ${WORKFOLDER}/Status.app/Contents/lib/plugins/libsnore-qt5/libsnore_backend_osxnotificationcenter.so
     $DEPLOYQT Status.app -verbose=$VERBOSE_LEVEL \
       -qmldir="$STATUSREACTPATH/node_modules/react-native/ReactQt/runtime/src/qml/"
+    ls -l
+    ls -l Status.app/Contents/Frameworks
+    rm -rf Status.app/Contents/Frameworks/libsnore-qt5.0.7.dylib
+    ls -l Status.app/Contents/Frameworks
     rm -f Status.app.zip
   popd
 
