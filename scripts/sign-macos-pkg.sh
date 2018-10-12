@@ -99,13 +99,13 @@ echo -e "\n### Signing object..."
 # If `OBJECT` is a directory, we assume it's an app
 # bundle, otherwise we consider it to be a dmg.
 if [ -d "$OBJECT" ]; then
-  codesign --sign "$DEV_ID" --deep --force --verbose=4 "$OBJECT"
+  codesign --sign "$DEV_ID" -o library --deep --force --verbose=4 "$OBJECT"
 else
   codesign --sign "$DEV_ID" --force --verbose=4 "$OBJECT"
 fi
 
 echo -e "\n### Verifying signature..."
-codesign --verify --strict=all --deep --verbose "$OBJECT"
+codesign --verify --strict=all --deep --verbose=4 "$OBJECT"
 
 echo -e "\n### Assessing Gatekeeper validation..."
 if [ -d "$OBJECT" ]; then
