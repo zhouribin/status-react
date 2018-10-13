@@ -259,11 +259,11 @@ function bundleMacOS() {
     $DEPLOYQT Status.app -verbose=$VERBOSE_LEVEL \
       -qmldir="$STATUSREACTPATH/node_modules/react-native/ReactQt/runtime/src/qml/"
     otool -L Status.app/Contents/MacOS/Status
-    install_name_tool -change \
-                  @executable_path/../Frameworks/libsnore-qt5.0.7.dylib @rpath/libsnore-qt5.0.7.dylib \
-                  Status.app/Contents/MacOS/Status
-    otool -L Status.app/Contents/MacOS/Status
-    ls -l
+    # install_name_tool -change \
+    #              @executable_path/../Frameworks/libsnore-qt5.0.7.dylib @rpath/libsnore-qt5.0.7.dylib \
+    #              Status.app/Contents/MacOS/Status
+    # otool -L Status.app/Contents/MacOS/Status
+    # ls -l
     ls -l Status.app/Contents/Frameworks
     # mv Status.app/Contents/Frameworks/libsnore-qt5.0.7.dylib Status.app/Contents/Frameworks/libsnore-qt5.dylib
     # ls -l Status.app/Contents/Frameworks
