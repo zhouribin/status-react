@@ -14,6 +14,7 @@
 
 #include "libsnore/application.h"
 #include "libsnore/snore.h"
+#include "libsnore/snore_static_plugins.h"
 
 #include <QCoreApplication>
 #include <QDebug>
