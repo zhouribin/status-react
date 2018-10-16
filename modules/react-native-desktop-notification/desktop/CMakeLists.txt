@@ -12,18 +12,16 @@ set(SN_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/SnoreNotify_ep-prefix/src/SnoreNotify_
 if (UNIX AND NOT APPLE)
   set(SN_LIBPATHSUFFIX /x86_64-linux-gnu)
   set(SnoreNotifyFreedesktop_STATIC_LIB ${SN_PREFIX}/lib${SN_LIBPATHSUFFIX}/${CMAKE_STATIC_LIBRARY_PREFIX}snore_backend_freedesktop${CMAKE_STATIC_LIBRARY_SUFFIX})
-  # set(SnoreNotify_StaticLibs_LIB /home/max/work/status-react-desktop/status-react6/status-react/build-desktop-Qt_5_9_1-Debug/modules/react-native-desktop-notification/desktop/SnoreNotify_ep-prefix/src/SnoreNotify_ep-build/liblibsnore_static_plugins.a)
 
-  set(SnoreNotify_LIBS ${SnoreNotifyFreedesktop_STATIC_LIB}) #${SnoreNotify_StaticLibs_LIB})
+  set(SnoreNotify_LIBS ${SnoreNotifyFreedesktop_STATIC_LIB})
 
   set(SnoreNotify_CMAKE_ARGS -DBUILD_osxnotificationcenter=OFF -DBUILD_sound=OFF -DBUILD_speech=OFF -DBUILD_toasty=OFF
                              -DBUILD_snarl=OFF -DBUILD_growl=OFF -DBUILD_trayicon=OFF -DBUILD_pushover_backend=OFF)
 endif()
 
 if (APPLE)
-  # set(SnoreNotify_StaticLibs_LIB /Users/max/Work/status/status-react-desktop/status-react4/status-react/desktop/modules/react-native-desktop-notification/desktop/SnoreNotify_ep-prefix/src/SnoreNotify_ep-build/liblibsnore_static_plugins.a)
   set(SnoreNotifyOSXNotificationCenter_STATIC_LIB ${SN_PREFIX}/lib${SN_LIBPATHSUFFIX}/${CMAKE_STATIC_LIBRARY_PREFIX}snore_backend_osxnotificationcenter${CMAKE_STATIC_LIBRARY_SUFFIX})
-  set(SnoreNotify_LIBS ${SnoreNotifyOSXNotificationCenter_STATIC_LIB}) #${SnoreNotify_StaticLibs_LIB})
+  set(SnoreNotify_LIBS ${SnoreNotifyOSXNotificationCenter_STATIC_LIB})
   set(SnoreNotify_CMAKE_ARGS -DBUILD_sound=OFF -DBUILD_speech=OFF -DBUILD_toasty=OFF -DBUILD_snarl=OFF -DBUILD_growl=OFF
                              -DBUILD_freedesktop_backend=OFF -DBUILD_trayicon=OFF -DBUILD_pushover_backend=OFF)
 endif()

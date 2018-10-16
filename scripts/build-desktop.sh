@@ -212,7 +212,6 @@ function bundleLinux() {
     cp -r assets/share/assets AppDir/usr/bin
     cp -rf StatusImAppImage/* AppDir/usr/bin
     rm -f AppDir/usr/bin/Status.AppImage
-    #cp -rf ../desktop/modules/react-native-desktop-notification/desktop/SnoreNotify_ep-prefix/src/SnoreNotify_ep/lib/x86_64-linux-gnu/plugins AppDir/usr/lib
   popd
   $APPIMAGETOOL \
     "$WORKFOLDER/AppDir"
@@ -253,24 +252,8 @@ function bundleMacOS() {
                       'Status.app/Contents/MacOS/Status'
     cp -f ../deployment/macos/Info.plist Status.app/Contents
     cp -f ../deployment/macos/status-icon.icns Status.app/Contents/Resources
-    #ls -l ../desktop/modules/react-native-desktop-notification/desktop/SnoreNotify_ep-prefix/src/SnoreNotify_ep/lib/plugins/libsnore-qt5/
-    #mkdir -p Status.app/Contents/PlugIns/libsnore-qt5
-    #cp -rf ../desktop/modules/react-native-desktop-notification/desktop/SnoreNotify_ep-prefix/src/SnoreNotify_ep/lib/plugins/libsnore-qt5/libsnore_backend_osxnotificationcenter.so Status.app/Contents/PlugIns/libsnore-qt5/
-    # cp -rf ../desktop/modules/react-native-desktop-notification/desktop/SnoreNotify_ep-prefix/src/SnoreNotify_ep/lib Status.app/Contents
-    # install_name_tool -change \
-    #              ${STATUSREACTPATH}/desktop/modules/react-native-desktop-notification/desktop/SnoreNotify_ep-prefix/src/SnoreNotify_ep/lib/libsnore-qt5.0.7.dylib @rpath/libsnore-qt5.0.7.dylib \
-    #              ${WORKFOLDER}/Status.app/Contents/lib/plugins/libsnore-qt5/libsnore_backend_osxnotificationcenter.so
     $DEPLOYQT Status.app -verbose=$VERBOSE_LEVEL \
       -qmldir="$STATUSREACTPATH/node_modules/react-native/ReactQt/runtime/src/qml/"
-    otool -L Status.app/Contents/MacOS/Status
-    # install_name_tool -change \
-    #              @executable_path/../Frameworks/libsnore-qt5.0.7.dylib @rpath/libsnore-qt5.0.7.dylib \
-    #              Status.app/Contents/MacOS/Status
-    # otool -L Status.app/Contents/MacOS/Status
-    # ls -l
-    ls -l Status.app/Contents/Frameworks
-    # mv Status.app/Contents/Frameworks/libsnore-qt5.0.7.dylib Status.app/Contents/Frameworks/libsnore-qt5.dylib
-    # ls -l Status.app/Contents/Frameworks
     rm -f Status.app.zip
   popd
 
