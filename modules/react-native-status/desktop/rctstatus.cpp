@@ -71,7 +71,7 @@ void RCTStatus::getDeviceUUID(double callbackId) {
   Q_D(RCTStatus);
   rnLog(RCTSTATUS) << "::getDeviceUUID call";
 
-  d->bridge->invokePromiseCallback(callbackId, QVariantList{"com.status.StatusIm"});
+  d->bridge->invokePromiseCallback(callbackId, QVariantList{"com.status.statusim"});
 }
 
 
