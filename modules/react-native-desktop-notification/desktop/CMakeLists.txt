@@ -10,7 +10,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 set(SN_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/SnoreNotify_ep-prefix/src/SnoreNotify_ep)
 if (UNIX AND NOT APPLE)
-  set(SN_LIBPATHSUFFIX /x86_64-linux-gnu)
+  set(SN_LIBPATHSUFFIX /${CMAKE_LIBRARY_ARCHITECTURE})
   set(SnoreNotifyFreedesktop_STATIC_LIB ${SN_PREFIX}/lib${SN_LIBPATHSUFFIX}/${CMAKE_STATIC_LIBRARY_PREFIX}snore_backend_freedesktop${CMAKE_STATIC_LIBRARY_SUFFIX})
 
   set(SnoreNotify_LIBS ${SnoreNotifyFreedesktop_STATIC_LIB})
@@ -37,7 +37,6 @@ set(SnoreNotify_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SN_PREFIX} -DSNORE_STATIC=ON
 
 ExternalProject_Add(SnoreNotify_ep
   GIT_REPOSITORY https://github.com/status-im/snorenotify.git
-  GIT_TAG static-build-support
   CMAKE_ARGS ${SnoreNotify_CMAKE_ARGS}
   BUILD_BYPRODUCTS ${SnoreNotify_STATIC_LIB} ${SnoreNotify_LIBS} ${SnoreNotifyBackend_STATIC_LIB}
                     ${SnoreNotifyBackendSettings_STATIC_LIB} ${SnoreNotifySettings_STATIC_LIB}
