@@ -14,10 +14,34 @@
 
 #include "libsnore/application.h"
 #include "libsnore/snore.h"
+
+#ifdef Q_OS_MAC
 #include "libsnore/snore_static_plugins.h"
+#endif
 
 #include <QCoreApplication>
 #include <QDebug>
+
+#ifdef Q_OS_LINUX
+namespace SnorePlugin {}
+
+
+using namespace SnorePlugin;
+Q_IMPORT_PLUGIN(Freedesktop)
+Q_IMPORT_PLUGIN(Snore)
+
+static void loadSnoreResources()
+{
+    // prevent multiple symbols
+     static const auto load = []() {
+         Q_INIT_RESOURCE(snore);
+         Q_INIT_RESOURCE(snore_notification);
+     };
+     load();
+}
+
+Q_COREAPP_STARTUP_FUNCTION(loadSnoreResources)
+#endif // Q_OS_LINUX
 
 namespace {
 struct RegisterQMLMetaType {
@@ -73,7 +97,7 @@ QVariantMap DesktopNotification::constantsToExport() { return QVariantMap(); }
 
 void DesktopNotification::sendNotification(QString text) {
   Q_D(DesktopNotification);
-  qDebug() << "call of DesktopNotification::sendNotification for msg:" << text;
+  qDebug() << "call of DesktopNotification::sendNotification";
 
   Snore::Notification notification(
       d_ptr->snoreApp, d_ptr->snoreApp.alerts()[NewMessageAlert], "New message",
