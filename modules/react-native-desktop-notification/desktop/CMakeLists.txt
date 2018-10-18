@@ -37,6 +37,7 @@ set(SnoreNotify_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SN_PREFIX} -DSNORE_STATIC=ON
 
 ExternalProject_Add(SnoreNotify_ep
   GIT_REPOSITORY https://github.com/status-im/snorenotify.git
+  GIT_TAG test/debug-info
   CMAKE_ARGS ${SnoreNotify_CMAKE_ARGS}
   BUILD_BYPRODUCTS ${SnoreNotify_STATIC_LIB} ${SnoreNotify_LIBS} ${SnoreNotifyBackend_STATIC_LIB}
                     ${SnoreNotifyBackendSettings_STATIC_LIB} ${SnoreNotifySettings_STATIC_LIB}
