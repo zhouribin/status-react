@@ -89,6 +89,10 @@ def pytest_addoption(parser):
                      action='store',
                      default=600,
                      help='Running time in seconds')
+    parser.addoption('--devices_number',
+                     action='store',
+                     default=24,
+                     help='Devices number')
 
 
 def is_master(config):
