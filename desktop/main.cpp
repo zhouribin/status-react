@@ -28,12 +28,13 @@
 
 #include "exceptionglobalhandler.h"
 
-#ifdef BUILD_FOR_BUNDLE
+
 #include <QMutexLocker>
 
 QStringList consoleOutputStrings;
-bool ubuntuServerStarted = false;
 QMutex consoleOutputMutex;
+#ifdef BUILD_FOR_BUNDLE
+bool ubuntuServerStarted = false;
 QProcess *g_ubuntuServerProcess = nullptr;
 #endif
 
@@ -139,12 +140,13 @@ private:
 #endif
 };
 
-#ifdef BUILD_FOR_BUNDLE
-void runUbuntuServer();
 void saveMessage(QtMsgType type, const QMessageLogContext &context,
                  const QString &msg);
-
 void writeLogsToFile();
+
+#ifdef BUILD_FOR_BUNDLE
+void runUbuntuServer();
+
 #endif
 
 void loadFontsFromResources() {
@@ -169,14 +171,14 @@ void exceptionPostHandledCallback() {
 
 QString getDataStoragePath() {
   QString dataStoragePath;
-#ifdef BUILD_FOR_BUNDLE
+// #ifdef BUILD_FOR_BUNDLE
   dataStoragePath =
       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
   QDir dir(dataStoragePath);
   if (!dir.exists()) {
     dir.mkpath(".");
   }
-#endif
+// #endif
   return dataStoragePath;
 }
 
@@ -199,6 +201,8 @@ int main(int argc, char **argv) {
   Q_INIT_RESOURCE(react_resources);
 
   loadFontsFromResources();
+
+  qInstallMessageHandler(saveMessage);
 
 #ifdef BUILD_FOR_BUNDLE
   qInstallMessageHandler(saveMessage);
@@ -244,21 +248,21 @@ int main(int argc, char **argv) {
   view.resize(MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT);
   view.show();
 
-#ifdef BUILD_FOR_BUNDLE
+//#ifdef BUILD_FOR_BUNDLE
   QTimer t;
   t.setInterval(500);
   QObject::connect(&t, &QTimer::timeout, [=]() { writeLogsToFile(); });
   t.start();
-#endif
+//#endif
 
   return app.exec();
 }
 
-#ifdef BUILD_FOR_BUNDLE
+
 
 void writeLogsToFile() {
   QMutexLocker locker(&consoleOutputMutex);
-  QFile logFile(getDataStoragePath() + "/Status.log");
+  QFile logFile(getDataStoragePath() + "/StatusDebug.log");
   if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
     for (QString message : consoleOutputStrings) {
       logFile.write(message.toStdString().c_str());
@@ -269,7 +273,7 @@ void writeLogsToFile() {
     logFile.close();
   }
 }
-
+#ifdef BUILD_FOR_BUNDLE
 void runUbuntuServer() {
   g_ubuntuServerProcess = new QProcess();
   g_ubuntuServerProcess->setWorkingDirectory(getDataStoragePath());
@@ -314,7 +318,7 @@ void runUbuntuServer() {
 
   qDebug() << "waiting finished";
 }
-
+#endif
 void appendConsoleString(const QString &msg) {
   QMutexLocker locker(&consoleOutputMutex);
   consoleOutputStrings << msg;
@@ -350,6 +354,6 @@ void saveMessage(QtMsgType type, const QMessageLogContext &context,
     abort();
   }
 }
-#endif
+
 
 #include "main.moc"
