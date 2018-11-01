@@ -10,17 +10,19 @@
 
 // #define BUILD_FOR_BUNDLE
 
+#include <QApplication>
 #include <QCommandLineParser>
 #include <QDirIterator>
 #include <QFile>
 #include <QFontDatabase>
-#include <QGuiApplication>
 #include <QMutexLocker>
 #include <QProcess>
 #include <QQuickView>
 #include <QStandardPaths>
 #include <QTimer>
 #include <QUrl>
+
+#include <qtwebengineglobal.h>
 
 #include "attachedproperties.h"
 #include "reactitem.h"
@@ -138,7 +140,7 @@ private:
 #ifdef BUILD_FOR_BUNDLE
   QString m_executor = "RemoteServerConnection";
 #else
-  QString m_executor = "LocalServerConnection";
+  QString m_executor = "RemoteServerConnection";
 #endif
 };
 
@@ -193,10 +195,10 @@ QString getDataStoragePath() {
 
 int main(int argc, char **argv) {
 
-  QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-  QGuiApplication app(argc, argv);
+  QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+  QApplication app(argc, argv);
 
-  QCoreApplication::setApplicationName("Status");
+  QApplication::setApplicationName("Status");
 
   QString appPath = QCoreApplication::applicationDirPath();
   QString dataStoragePath = getDataStoragePath();
@@ -212,6 +214,8 @@ int main(int argc, char **argv) {
   Q_INIT_RESOURCE(react_resources);
 
   loadFontsFromResources();
+
+  QtWebEngine::initialize();
 
   if (redirectLogIntoFile()) {
     qInstallMessageHandler(saveMessage);
