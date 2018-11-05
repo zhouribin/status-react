@@ -39,7 +39,7 @@
 (defn store-chat-transaction-hash [tx-hash {:keys [db]}]
   {:db (update-in db [:wallet :chat-transactions] conj tx-hash)})
 
-;; Seq[chat] -> Set[transaction-id] 
+;; Seq[chat] -> Set[transaction-id]
 (defn chats->transaction-ids [chats]
   {:pre [(every? :messages chats)]
    :post [(set? %)]}
@@ -52,20 +52,24 @@
        (filter identity)
        set))
 
-(defn- missing-chat-transactions [{:keys [db] :as cofx}]
-  (let [chat-transaction-ids (chats->transaction-ids
-                              (->> db :chats vals))
-        transaction-ids (set (keys (get-in db [:wallet :transactions])))]
-    (set/difference chat-transaction-ids transaction-ids)))
+;; Set[transaction-id], Set[transaction-id] -> Set[transaction-id]
+(defn- missing-chat-transactions [chat-transaction-ids transaction-ids]
+  {:pre [(set? chat-transaction-ids)
+         (every? string? chat-transaction-ids)
+         (set? transaction-ids)
+         (every? string? transaction-ids)]}
+  (set/difference chat-transaction-ids transaction-ids))
 
 (fx/defn load-missing-chat-transactions
   "Find missing chat transactions and store them at [:wallet :chat-transactions]
   to be used later by have-missing-chat-transactions? on every sync request"
   [{:keys [db] :as cofx}]
   (when (nil? (get-in db [:wallet :chat-transactions]))
-    {:db (assoc-in db
-                   [:wallet :chat-transactions]
-                   (missing-chat-transactions cofx))}))
+    (let [chat-transaction-ids (chats->transaction-ids (->> db :chats vals))
+          transaction-ids (set (keys (get-in db [:wallet :transactions])))]
+      {:db (assoc-in db
+                     [:wallet :chat-transactions]
+                     (missing-chat-transactions chat-transaction-ids transaction-ids))})))
 
 (fx/defn run-update [{{:keys [network network-status web3] :as db} :db}]
   (when (not= network-status :offline)
