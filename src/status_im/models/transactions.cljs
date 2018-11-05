@@ -35,20 +35,24 @@
 (defn store-chat-transaction-hash [tx-hash {:keys [db]}]
   {:db (update-in db [:wallet :chat-transactions] conj tx-hash)})
 
+;; Seq[chat] -> Set[transaction-id] 
+(defn chats->transaction-ids [chats]
+  {:pre [(every? :messages chats)]
+   :post [(set? %)]}
+  (->> chats
+       (remove :public?)
+       (mapcat :messages)
+       vals
+       (filter #(= "command" (:content-type %)))
+       (map #(get-in % [:content :params :tx-hash]))
+       (filter identity)
+       set))
+
 (defn- missing-chat-transactions [{:keys [db] :as cofx}]
-  (let [chat-transactions (->> db
-                               :chats
-                               vals
-                               (remove :public?)
-                               (mapcat :messages)
-                               vals
-                               flatten
-                               (filter #(= "command" (:content-type %)))
-                               (map #(get-in % [:content :params :tx-hash]))
-                               (filter identity)
-                               set)
+  (let [chat-transaction-ids (chats->transaction-ids
+                              (->> db :chats vals))
         transation-ids (set (keys (get-in db [:wallet :transactions])))]
-    (set/difference chat-transactions transation-ids)))
+    (set/difference chat-transaction-ids transation-ids)))
 
 (fx/defn load-missing-chat-transactions
   "Find missing chat transactions and store them at [:wallet :chat-transactions]

@@ -14,6 +14,39 @@
   (is (not (wallet.transactions/have-unconfirmed-transactions?
             [{:confirmations "12"}]))))
 
+(deftest chats->transaction-ids
+  (is (= #{} (wallet.transactions/chats->transaction-ids [])))
+  (is (= #{"a" "b" "c" "d"}
+         (wallet.transactions/chats->transaction-ids
+          [{:messages {1 {:content-type "command"
+                          :content {:params {:tx-hash "a"}}}}}
+           {:messages {1 {:content-type "command"
+                          :content {:params {:tx-hash "b"}}}}}
+           {:messages {1 {:content-type "command"
+                          :content {:params {:tx-hash "c"}}}
+                       2 {:content-type "command"
+                          :content {:params {:tx-hash "d"}}}}}])))
+
+  (is (= #{"a" "b" "c" "d"}
+         (wallet.transactions/chats->transaction-ids
+          [{:messages {1 {:content-type "command"
+                          :content {:params {:tx-hash "a"}}}}}
+           {:messages {1 {:content-type "command"
+                          :content {:params {:tx-hash "b"}}}}}
+           {:messages {1 {:content-type "command"
+                          :content {:params {:tx-hash "c"}}}
+                       2 {:content-type "command"
+                          :content {:params {:tx-hash "d"}}}}}])))
+  (is (= #{"b"}
+         (wallet.transactions/chats->transaction-ids
+          [{:public? true
+            :messages {1 {:content-type "command"
+                          :content {:params {:tx-hash "a"}}}}}
+           {:messages {1 {:content-type "command"
+                          :content {:params {:tx-hash "b"}}}}}
+           {:messages {1 {:content {:params {:tx-hash "c"}}}
+                       2 {:content-type "command"}}}]))))
+
 (deftest test-store-chat-transaction-hash
   (is (= (wallet.transactions/store-chat-transaction-hash "0x318f566edd98eb29965067d3394c555050bf9f8e20183792c7f1a6bbc1bb34db"
                                                           {:db {:wallet {:chat-transactions #{"0x0873923e4d8b39ccfeb8c1af9701a9da02fdc76947a48de7c5df1540f77fdc5b"}}}})
