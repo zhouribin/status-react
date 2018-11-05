@@ -21,19 +21,12 @@
        (map int)
        (some #(< % confirmations-count-threshold))))
 
-(defn- wallet-transactions-set [db]
-  (-> db
-      (get-in [:wallet :transactions])
-      keys
-      set))
-
 ;; Detects if some of missing chat transactions are missing from wallet
 (defn- have-missing-chat-transactions? [{:keys [db]}]
-  (let [chat-transactions (get-in db [:wallet :chat-transactions])]
+  (let [chat-transactions (get-in db [:wallet :chat-transactions])
+        transation-ids (set (keys (get-in db [:wallet :transactions])))]
     (not= (count chat-transactions)
-          (count (set/intersection
-                  chat-transactions
-                  (wallet-transactions-set db))))))
+          (count (set/intersection chat-transactions transation-ids)))))
 
 (fx/defn schedule-sync [cofx]
   {:utils/dispatch-later [{:ms       sync-interval-ms
@@ -53,10 +46,9 @@
                                (filter #(= "command" (:content-type %)))
                                (map #(get-in % [:content :params :tx-hash]))
                                (filter identity)
-                               set)]
-    (set/difference
-     chat-transactions
-     (wallet-transactions-set db))))
+                               set)
+        transation-ids (set (keys (get-in db [:wallet :transactions])))]
+    (set/difference chat-transactions transation-ids)))
 
 (fx/defn load-missing-chat-transactions
   "Find missing chat transactions and store them at [:wallet :chat-transactions]
