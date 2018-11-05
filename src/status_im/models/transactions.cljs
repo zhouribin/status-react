@@ -10,10 +10,13 @@
 (def sync-interval-ms 15000)
 (def confirmations-count-threshold 12)
 
-;; Detects if some of the transactions have less than 12 confirmations
-(defn- have-unconfirmed-transactions? [cofx]
-  (->> (get-in cofx [:db :wallet :transactions])
-       vals
+;; TODO is it a good idea for :confirmations to be a string?
+;; Seq[transaction] -> truthy
+(defn- have-unconfirmed-transactions?
+  "Detects if some of the transactions have less than 12 confirmations"
+  [transactions]
+  {:pre [(every? string? (map :confirmations transactions))]}
+  (->> transactions
        (map :confirmations)
        (map int)
        (some #(< % confirmations-count-threshold))))
@@ -95,12 +98,13 @@
   [{:keys [db] :as cofx}]
   (if (:account/account db)
     (let [in-progress? (get-in db [:wallet :transactions-loading?])
-          {:keys [app-state network-status]} db]
+          {:keys [app-state network-status wallet]} db
+          transaction-map (:transactions wallet)]
       (if (and (not= network-status :offline)
                (= app-state "active")
                (not in-progress?)
                (time-to-sync? cofx)
-               (or (have-unconfirmed-transactions? cofx)
+               (or (have-unconfirmed-transactions? (vals transaction-map))
                    (have-missing-chat-transactions? cofx)))
         (fx/merge cofx
                   (run-update)

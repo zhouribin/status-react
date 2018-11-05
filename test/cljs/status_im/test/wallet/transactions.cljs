@@ -3,6 +3,17 @@
             [status-im.utils.datetime :as time]
             [status-im.models.transactions :as wallet.transactions]))
 
+(deftest have-unconfirmed-transactions
+  (is (wallet.transactions/have-unconfirmed-transactions?
+       [{:confirmations "0"}]))
+  (is (wallet.transactions/have-unconfirmed-transactions?
+       [{:confirmations "11"}]))
+  (is (wallet.transactions/have-unconfirmed-transactions?
+       [{:confirmations "200"}
+        {:confirmations "0"}]))
+  (is (not (wallet.transactions/have-unconfirmed-transactions?
+            [{:confirmations "12"}]))))
+
 (deftest test-store-chat-transaction-hash
   (is (= (wallet.transactions/store-chat-transaction-hash "0x318f566edd98eb29965067d3394c555050bf9f8e20183792c7f1a6bbc1bb34db"
                                                           {:db {:wallet {:chat-transactions #{"0x0873923e4d8b39ccfeb8c1af9701a9da02fdc76947a48de7c5df1540f77fdc5b"}}}})
