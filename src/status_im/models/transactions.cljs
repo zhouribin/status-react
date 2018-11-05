@@ -21,13 +21,6 @@
        (map int)
        (some #(< % confirmations-count-threshold))))
 
-(fx/defn schedule-sync [cofx]
-  {:utils/dispatch-later [{:ms       sync-interval-ms
-                           :dispatch [:sync-wallet-transactions]}]})
-
-(defn store-chat-transaction-hash [tx-hash {:keys [db]}]
-  {:db (update-in db [:wallet :chat-transactions] (fnil conj #{}) tx-hash)})
-
 ;; Seq[chat] -> Set[transaction-id]
 (defn chats->transaction-ids [chats]
   {:pre [(every? :messages chats)]
@@ -40,6 +33,13 @@
        (map #(get-in % [:content :params :tx-hash]))
        (filter identity)
        set))
+
+(fx/defn schedule-sync [cofx]
+  {:utils/dispatch-later [{:ms       sync-interval-ms
+                           :dispatch [:sync-wallet-transactions]}]})
+
+(defn store-chat-transaction-hash [tx-hash {:keys [db]}]
+  {:db (update-in db [:wallet :chat-transactions] (fnil conj #{}) tx-hash)})
 
 (fx/defn load-missing-chat-transactions
   "Find missing chat transactions and store them at [:wallet :chat-transactions]
