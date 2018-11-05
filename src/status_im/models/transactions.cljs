@@ -21,7 +21,15 @@
        (map int)
        (some #(< % confirmations-count-threshold))))
 
-;; Set[transaction-id], Set[transaction-id] -> bool 
+;; Set[transaction-id], Set[transaction-id] -> Set[transaction-id]
+(defn- missing-chat-transactions [chat-transaction-ids transaction-ids]
+  {:pre [(set? chat-transaction-ids)
+         (every? string? chat-transaction-ids)
+         (set? transaction-ids)
+         (every? string? transaction-ids)]}
+  (set/difference chat-transaction-ids transaction-ids))
+
+;; Set[transaction-id], Set[transaction-id] -> truthy
 (defn- have-missing-chat-transactions?
   "Detects if some of missing chat transactions are missing from wallet"
   [chat-transaction-ids transaction-ids]
@@ -29,8 +37,7 @@
          (every? string? chat-transaction-ids)
          (set? transaction-ids)
          (every? string? transaction-ids)]}
-  (not= (count chat-transaction-ids)
-        (count (set/intersection chat-transaction-ids transaction-ids))))
+  (not-empty (missing-chat-transactions chat-transaction-ids transaction-ids)))
 
 (fx/defn schedule-sync [cofx]
   {:utils/dispatch-later [{:ms       sync-interval-ms
@@ -51,14 +58,6 @@
        (map #(get-in % [:content :params :tx-hash]))
        (filter identity)
        set))
-
-;; Set[transaction-id], Set[transaction-id] -> Set[transaction-id]
-(defn- missing-chat-transactions [chat-transaction-ids transaction-ids]
-  {:pre [(set? chat-transaction-ids)
-         (every? string? chat-transaction-ids)
-         (set? transaction-ids)
-         (every? string? transaction-ids)]}
-  (set/difference chat-transaction-ids transaction-ids))
 
 (fx/defn load-missing-chat-transactions
   "Find missing chat transactions and store them at [:wallet :chat-transactions]
