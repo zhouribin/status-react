@@ -21,12 +21,16 @@
        (map int)
        (some #(< % confirmations-count-threshold))))
 
-;; Detects if some of missing chat transactions are missing from wallet
-(defn- have-missing-chat-transactions? [{:keys [db]}]
-  (let [chat-transactions (get-in db [:wallet :chat-transactions])
-        transation-ids (set (keys (get-in db [:wallet :transactions])))]
-    (not= (count chat-transactions)
-          (count (set/intersection chat-transactions transation-ids)))))
+;; Set[transaction-id], Set[transaction-id] -> bool 
+(defn- have-missing-chat-transactions?
+  "Detects if some of missing chat transactions are missing from wallet"
+  [chat-transaction-ids transaction-ids]
+  {:pre [(set? chat-transaction-ids)
+         (every? string? chat-transaction-ids)
+         (set? transaction-ids)
+         (every? string? transaction-ids)]}
+  (not= (count chat-transaction-ids)
+        (count (set/intersection chat-transaction-ids transaction-ids))))
 
 (fx/defn schedule-sync [cofx]
   {:utils/dispatch-later [{:ms       sync-interval-ms
@@ -51,8 +55,8 @@
 (defn- missing-chat-transactions [{:keys [db] :as cofx}]
   (let [chat-transaction-ids (chats->transaction-ids
                               (->> db :chats vals))
-        transation-ids (set (keys (get-in db [:wallet :transactions])))]
-    (set/difference chat-transaction-ids transation-ids)))
+        transaction-ids (set (keys (get-in db [:wallet :transactions])))]
+    (set/difference chat-transaction-ids transaction-ids)))
 
 (fx/defn load-missing-chat-transactions
   "Find missing chat transactions and store them at [:wallet :chat-transactions]
@@ -95,13 +99,16 @@
   (if (:account/account db)
     (let [in-progress? (get-in db [:wallet :transactions-loading?])
           {:keys [app-state network-status wallet]} db
-          transaction-map (:transactions wallet)]
+          transaction-map (:transactions wallet)
+          chat-transaction-ids (:chat-transactions wallet)
+          transaction-ids (set (keys transaction-map))]
       (if (and (not= network-status :offline)
                (= app-state "active")
                (not in-progress?)
                (time-to-sync? cofx)
                (or (have-unconfirmed-transactions? (vals transaction-map))
-                   (have-missing-chat-transactions? cofx)))
+                   (have-missing-chat-transactions?
+                    chat-transaction-ids transaction-ids)))
         (fx/merge cofx
                   (run-update)
                   (schedule-sync))
