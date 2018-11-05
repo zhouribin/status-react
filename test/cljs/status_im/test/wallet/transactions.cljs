@@ -14,16 +14,6 @@
   (is (not (wallet.transactions/have-unconfirmed-transactions?
             [{:confirmations "12"}]))))
 
-(deftest have-missing-chat-transactions
-  (is (not (wallet.transactions/have-missing-chat-transactions?
-            #{} #{})))
-  (is (not (wallet.transactions/have-missing-chat-transactions?
-            #{"a" "b"} #{"a" "b"})))
-  (is (wallet.transactions/have-missing-chat-transactions?
-       #{"a" "b" "c"} #{"a" "b"}))
-  (is (not (wallet.transactions/have-missing-chat-transactions?
-            #{"a" "b"} #{"a" "b" "c"}))))
-
 (deftest chats->transaction-ids
   (is (= #{} (wallet.transactions/chats->transaction-ids [])))
   (is (= #{"a" "b" "c" "d"}

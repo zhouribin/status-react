@@ -21,22 +21,12 @@
        (map int)
        (some #(< % confirmations-count-threshold))))
 
-;; Set[transaction-id], Set[transaction-id] -> truthy
-(defn- have-missing-chat-transactions?
-  "Detects if some of missing chat transactions are missing from wallet"
-  [chat-transaction-ids transaction-ids]
-  {:pre [(set? chat-transaction-ids)
-         (every? string? chat-transaction-ids)
-         (set? transaction-ids)
-         (every? string? transaction-ids)]}
-  (not-empty (set/difference chat-transaction-ids transaction-ids)))
-
 (fx/defn schedule-sync [cofx]
   {:utils/dispatch-later [{:ms       sync-interval-ms
                            :dispatch [:sync-wallet-transactions]}]})
 
 (defn store-chat-transaction-hash [tx-hash {:keys [db]}]
-  {:db (update-in db [:wallet :chat-transactions] conj tx-hash)})
+  {:db (update-in db [:wallet :chat-transactions] (fnil conj #{}) tx-hash)})
 
 ;; Seq[chat] -> Set[transaction-id]
 (defn chats->transaction-ids [chats]
@@ -97,13 +87,13 @@
           transaction-map (:transactions wallet)
           chat-transaction-ids (:chat-transactions wallet)
           transaction-ids (set (keys transaction-map))]
+      (assert (set? chat-transaction-ids))
       (if (and (not= network-status :offline)
                (= app-state "active")
                (not in-progress?)
                (time-to-sync? cofx)
                (or (have-unconfirmed-transactions? (vals transaction-map))
-                   (have-missing-chat-transactions?
-                    chat-transaction-ids transaction-ids)))
+                   (not-empty (set/difference chat-transaction-ids transaction-ids))))
         (fx/merge cofx
                   (run-update)
                   (schedule-sync))
