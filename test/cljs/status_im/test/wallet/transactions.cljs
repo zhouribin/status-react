@@ -14,38 +14,40 @@
   (is (not (wallet.transactions/have-unconfirmed-transactions?
             [{:confirmations "12"}]))))
 
-(deftest chats->transaction-ids
-  (is (= #{} (wallet.transactions/chats->transaction-ids [])))
+(deftest chat-map->transaction-ids
+  (is (= #{} (wallet.transactions/chat-map->transaction-ids {})))
   (is (= #{"a" "b" "c" "d"}
-         (wallet.transactions/chats->transaction-ids
-          [{:messages {1 {:content-type "command"
-                          :content {:params {:tx-hash "a"}}}}}
-           {:messages {1 {:content-type "command"
-                          :content {:params {:tx-hash "b"}}}}}
-           {:messages {1 {:content-type "command"
-                          :content {:params {:tx-hash "c"}}}
-                       2 {:content-type "command"
-                          :content {:params {:tx-hash "d"}}}}}])))
+         (wallet.transactions/chat-map->transaction-ids
+          {:a {:messages {1 {:content-type "command"
+                             :content {:params {:tx-hash "a"}}}}}
+           :b {:messages {1 {:content-type "command"
+                             :content {:params {:tx-hash "b"}}}}}
+           :c {:messages {1 {:content-type "command"
+                             :content {:params {:tx-hash "c"}}}
+                          2 {:content-type "command"
+                             :content {:params {:tx-hash "d"}}}}}})))
 
-  (is (= #{"a" "b" "c" "d"}
-         (wallet.transactions/chats->transaction-ids
-          [{:messages {1 {:content-type "command"
-                          :content {:params {:tx-hash "a"}}}}}
-           {:messages {1 {:content-type "command"
-                          :content {:params {:tx-hash "b"}}}}}
-           {:messages {1 {:content-type "command"
-                          :content {:params {:tx-hash "c"}}}
-                       2 {:content-type "command"
-                          :content {:params {:tx-hash "d"}}}}}])))
+  (is (= #{"a" "b" "c" "d" "e"}
+         (wallet.transactions/chat-map->transaction-ids
+          {:aa {:messages {1 {:content-type "command"
+                              :content {:params {:tx-hash "a"}}}}}
+           :bb {:messages {1 {:content-type "command"
+                              :content {:params {:tx-hash "b"}}}}}
+           :cc {:messages {1 {:content-type "command"
+                              :content {:params {:tx-hash "c"}}}
+                           2 {:content-type "command"
+                              :content {:params {:tx-hash "d"}}}
+                           3 {:content-type "command"
+                              :content {:params {:tx-hash "e"}}}}}})))
   (is (= #{"b"}
-         (wallet.transactions/chats->transaction-ids
-          [{:public? true
-            :messages {1 {:content-type "command"
-                          :content {:params {:tx-hash "a"}}}}}
-           {:messages {1 {:content-type "command"
-                          :content {:params {:tx-hash "b"}}}}}
-           {:messages {1 {:content {:params {:tx-hash "c"}}}
-                       2 {:content-type "command"}}}]))))
+         (wallet.transactions/chat-map->transaction-ids
+          {:aa {:public? true
+                :messages {1 {:content-type "command"
+                              :content {:params {:tx-hash "a"}}}}}
+           :bb {:messages {1 {:content-type "command"
+                              :content {:params {:tx-hash "b"}}}}}
+           :cc {:messages {1 {:content {:params {:tx-hash "c"}}}
+                           2 {:content-type "command"}}}}))))
 
 (deftest test-store-chat-transaction-hash
   (is (= (wallet.transactions/store-chat-transaction-hash "0x318f566edd98eb29965067d3394c555050bf9f8e20183792c7f1a6bbc1bb34db"

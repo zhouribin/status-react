@@ -21,36 +21,46 @@
        (map int)
        (some #(< % confirmations-count-threshold))))
 
-;; Seq[chat] -> Set[transaction-id]
-(defn chats->transaction-ids [chats]
-  {:pre [(every? :messages chats)]
-   :post [(set? %)]}
-  (->> chats
-       (remove :public?)
-       (mapcat :messages)
-       vals
-       (filter #(= "command" (:content-type %)))
-       (map #(get-in % [:content :params :tx-hash]))
-       (filter identity)
-       set))
+;; this could be a util but ensure that its needed elsewhere before moving
+(defn- keyed-memoize
+  "Takes a key-function that decides the name of the cached entry.
+  Takes a value function that will invalidate the cache if it changes.
+  And finally the function to memoize.
+
+  Memoize that doesn't grow bigger than the number of keys."
+  [key-fn val-fn f]
+  (let [val-store (atom {})
+        res-store (atom {})]
+    (fn [arg]
+      (let [k (key-fn arg)
+            v (val-fn arg)]
+        (if (not= (get @val-store k) v)
+          (let [res (f arg)]
+            #_(prn "storing!!!!" res)
+            (swap! val-store assoc k v)
+            (swap! res-store assoc k res)
+            res)
+          (get @res-store k))))))
+
+;; Map[id, chat] -> Set[transaction-id]
+(let [chat-map-entry->transaction-ids
+      (keyed-memoize key (comp :messages val)
+                     (fn [[_ chat]]
+                       (->> (:messages chat)
+                            vals
+                            (filter #(= "command" (:content-type %)))
+                            (keep #(get-in % [:content :params :tx-hash])))))]
+  (defn- chat-map->transaction-ids [chat-map]
+    {:pre [(every? :messages (vals chat-map))]
+     :post [(set? %)]}
+    (->> chat-map
+         (remove (comp :public? val))
+         (mapcat chat-map-entry->transaction-ids)
+         set)))
 
 (fx/defn schedule-sync [cofx]
   {:utils/dispatch-later [{:ms       sync-interval-ms
                            :dispatch [:sync-wallet-transactions]}]})
-
-(defn store-chat-transaction-hash [tx-hash {:keys [db]}]
-  {:db (update-in db [:wallet :chat-transactions] (fnil conj #{}) tx-hash)})
-
-(fx/defn load-missing-chat-transactions
-  "Find missing chat transactions and store them at [:wallet :chat-transactions]
-  to be used later by have-missing-chat-transactions? on every sync request"
-  [{:keys [db] :as cofx}]
-  (when (nil? (get-in db [:wallet :chat-transactions]))
-    (let [chat-transaction-ids (chats->transaction-ids (->> db :chats vals))
-          transaction-ids (set (keys (get-in db [:wallet :transactions])))]
-      {:db (assoc-in db
-                     [:wallet :chat-transactions]
-                     (set/difference chat-transaction-ids transaction-ids))})))
 
 (fx/defn run-update [{{:keys [network network-status web3] :as db} :db}]
   (when (not= network-status :offline)
@@ -83,9 +93,9 @@
   [{:keys [db] :as cofx}]
   (if (:account/account db)
     (let [in-progress? (get-in db [:wallet :transactions-loading?])
-          {:keys [app-state network-status wallet]} db
+          {:keys [app-state network-status wallet chats]} db
+          chat-transaction-ids (chat-map->transaction-ids chats)
           transaction-map (:transactions wallet)
-          chat-transaction-ids (:chat-transactions wallet)
           transaction-ids (set (keys transaction-map))]
       (assert (set? chat-transaction-ids))
       (if (and (not= network-status :offline)
@@ -103,6 +113,5 @@
 (fx/defn start-sync [cofx]
   (when-not (semaphores/locked? cofx :sync-wallet-transactions?)
     (fx/merge cofx
-              (load-missing-chat-transactions)
               (semaphores/lock :sync-wallet-transactions?)
               (sync))))
