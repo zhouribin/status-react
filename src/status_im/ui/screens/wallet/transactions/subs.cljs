@@ -9,11 +9,6 @@
             [status-im.utils.ethereum.tokens :as tokens]
             [status-im.ui.screens.wallet.utils :as wallet.utils]))
 
-(reg-sub :wallet.transactions/transactions-loading?
-         :<- [:wallet]
-         (fn [wallet]
-           (:transactions-loading? wallet)))
-
 (reg-sub :wallet.transactions/current-tab
          :<- [:wallet]
          (fn [wallet]
