@@ -323,7 +323,7 @@
             :error-fn        error-fn}))))))
 
 ;; -----------------------------------------------------------------------------
-;; helper functions to ensure transactions are owned by a certain address
+;; merge duplicate transactions to update their information 
 ;; -----------------------------------------------------------------------------
 
 (letfn [(combine-entries [transaction token-transfer]

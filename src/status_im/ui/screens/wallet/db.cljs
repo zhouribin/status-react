@@ -10,18 +10,19 @@
 
 (spec/def :wallet/send (allowed-keys :req-un [:wallet.send/recipient]))
 
-;; TODO these key specs are not needed as they don't do anything
 (spec/def :wallet/balance-loading? (spec/nilable boolean?))
-(spec/def :wallet/errors (spec/nilable any?))
-(spec/def :wallet/transactions (spec/nilable any?))
-(spec/def :wallet/transactions-queue (spec/nilable any?))
-(spec/def :wallet/edit (spec/nilable any?))
-(spec/def :wallet/current-tab (spec/nilable any?))
-(spec/def :wallet/current-transaction (spec/nilable any?))
-(spec/def :wallet/modal-history? (spec/nilable any?))
-(spec/def :wallet/visible-tokens (spec/nilable any?))
-(spec/def :wallet/currency (spec/nilable any?))
-(spec/def :wallet/balance (spec/nilable any?))
+
+;; TODO these key specs are not needed, they don't do anything
+(spec/def :wallet/errors any?)
+(spec/def :wallet/transactions any?)
+(spec/def :wallet/transactions-queue any?)
+(spec/def :wallet/edit any?)
+(spec/def :wallet/current-tab any?)
+(spec/def :wallet/current-transaction any?)
+(spec/def :wallet/modal-history? any?)
+(spec/def :wallet/visible-tokens any?)
+(spec/def :wallet/currency any?)
+(spec/def :wallet/balance any?)
 
 (spec/def :wallet/wallet (allowed-keys :opt-un [:wallet/send-transaction
                                                 :wallet/request-transaction
