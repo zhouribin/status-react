@@ -73,33 +73,32 @@
   {:utils/dispatch-later [{:ms       sync-interval-ms
                            :dispatch [:sync-wallet-transactions]}]})
 
-(defn combine-entries [transaction token-transfer]
-  (merge transaction (select-keys token-transfer [:symbol :from :to :value :type :token :transfer])))
+;; -----------------------------------------------------------------------------
+;; helper functions to ensure transactions are owned by a certain address
+;; -----------------------------------------------------------------------------
 
-(defn update-confirmations [tx1 tx2]
-  (assoc tx1 :confirmations (max (:confirmations tx1)
-                                 (:confirmations tx2))))
+(letfn [(combine-entries [transaction token-transfer]
+          (merge transaction (select-keys token-transfer [:symbol :from :to :value :type :token :transfer])))
+        (update-confirmations [tx1 tx2]
+          ;; TODO why is :confimations a string?
+                              (assoc tx1 :confirmations (max (int (:confirmations tx1))
+                                                             (int (:confirmations tx2)))))
+        (tx-and-transfer? [tx1 tx2]
+                          (and (not (:transfer tx1)) (:transfer tx2)))
+        (both-transfer?
+         [tx1 tx2]
+         (and (:transfer tx1) (:transfer tx2)))]
+  (defn- dedupe-transactions [tx1 tx2]
+    (cond (tx-and-transfer? tx1 tx2) (combine-entries tx1 tx2)
+          (tx-and-transfer? tx2 tx1) (combine-entries tx2 tx1)
+          (both-transfer? tx1 tx2)   (update-confirmations tx1 tx2)
+          :else tx2)))
 
-(defn- tx-and-transfer?
-  "A helper function that checks if first argument is a transaction and the second argument a token transfer object."
-  [tx1 tx2]
-  (and (not (:transfer tx1)) (:transfer tx2)))
-
-(defn- both-transfer?
-  [tx1 tx2]
-  (and (:transfer tx1) (:transfer tx2)))
-
-(defn own-transaction? [address [_ {:keys [type to from]}]]
+(defn- own-transaction? [address [_ {:keys [type to from]}]]
   (let [normalized (ethereum/normalized-address address)]
     (or (and (= :inbound type) (= normalized (ethereum/normalized-address to)))
         (and (= :outbound type) (= normalized (ethereum/normalized-address from)))
         (and (= :failed type) (= normalized (ethereum/normalized-address from))))))
-
-(defn- dedupe-transactions [tx1 tx2]
-  (cond (tx-and-transfer? tx1 tx2) (combine-entries tx1 tx2)
-        (tx-and-transfer? tx2 tx1) (combine-entries tx2 tx1)
-        (both-transfer? tx1 tx2)   (update-confirmations tx1 tx2)
-        :else tx2))
 
 (handlers/register-handler-fx
  :update-transactions-success
@@ -162,11 +161,11 @@
         (< sync-interval-ms
            (- (time/timestamp) last-updated-at)))))
 
-(defn async-periodic-now [async-periodic-chan]
-  (put! async-periodic-chan true))
+(defn- async-periodic-run! [async-periodic-chan]
+  (async/put! async-periodic-chan true))
 
-(defn async-periodic-stop [async-periodic-chan]
-  (close! async-periodic-chan))
+(defn- async-periodic-stop! [async-periodic-chan]
+  (async/close! async-periodic-chan))
 
 (defn- async-periodic-exec
   "Periodically execute an function.
