@@ -10,7 +10,6 @@
             [status-im.utils.handlers :as handlers]
             [status-im.utils.money :as money]
             [status-im.utils.prices :as prices]
-            [status-im.utils.transactions :as transactions]
             [taoensso.timbre :as log]
             [status-im.utils.fx :as fx]))
 
@@ -90,7 +89,7 @@
 (handlers/register-handler
  :update-transactions
  (fn [cofx _]
-   {::wallet.transactions/sync-transactions-now nil}))
+   {::wallet.sync-transactions-now nil}))
 
 (handlers/register-handler-fx
  :update-balance-success

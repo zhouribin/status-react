@@ -63,4 +63,3 @@
   (ethereum/call web3
                  (ethereum/call-params contract "allowance(address,address)" (ethereum/normalized-address owner-address) (ethereum/normalized-address spender-address))
                  #(cb %1 (ethereum/hex->bignumber %2))))
-

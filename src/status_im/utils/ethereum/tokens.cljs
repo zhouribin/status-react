@@ -495,8 +495,11 @@
 
    :custom  []})
 
-(defn tokens-for [chain]
-  (get all chain))
+(defn tokens-for
+  "makes sure all addresses are lower-case
+   TODO: token list should be speced and not accept non-lower-cased addresses"
+  [chain]
+  (mapv #(update % :address string/lower-case) (get all chain)))
 
 (defn all-assets-for [chain]
   (concat [(native-currency chain)]
