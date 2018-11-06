@@ -1,5 +1,7 @@
 (ns status-im.models.transactions
   (:require [clojure.set :as set]
+            [cljs.core.async :as async]
+            [status-im.utils.async :as async-util]
             [status-im.utils.datetime :as time]
             [status-im.utils.ethereum.core :as ethereum]
             [status-im.utils.ethereum.tokens :as tokens]
@@ -9,7 +11,9 @@
             [status-im.utils.transactions :as transactions]
             [taoensso.timbre :as log]
             [status-im.utils.fx :as fx]
-            [re-frame.core :as re-frame]))
+            [re-frame.core :as re-frame])
+  (:require-macros
+   [cljs.core.async.macros :refer [go-loop go]]))
 
 (def sync-interval-ms 15000)
 (def confirmations-count-threshold 12)
@@ -27,9 +31,12 @@
 
 ;; this could be a util but ensure that its needed elsewhere before moving
 (defn- keyed-memoize
-  "Takes a key-function that decides the name of the cached entry.
-  Takes a value function that will invalidate the cache if it changes.
-  And finally the function to memoize.
+  "Space bounded memoize.
+
+  Takes a key-function that decides the key in the cache for the
+  memoized value. Takes a value function that will extract the value
+  that will invalidate the cache if it changes.  And finally the
+  function to memoize.
 
   Memoize that doesn't grow bigger than the number of keys."
   [key-fn val-fn f]
@@ -82,17 +89,17 @@
   [tx1 tx2]
   (and (:transfer tx1) (:transfer tx2)))
 
-(defn dedupe-transactions [tx1 tx2]
-  (cond (tx-and-transfer? tx1 tx2) (combine-entries tx1 tx2)
-        (tx-and-transfer? tx2 tx1) (combine-entries tx2 tx1)
-        (both-transfer? tx1 tx2)   (update-confirmations tx1 tx2)
-        :else tx2))
-
 (defn own-transaction? [address [_ {:keys [type to from]}]]
   (let [normalized (ethereum/normalized-address address)]
     (or (and (= :inbound type) (= normalized (ethereum/normalized-address to)))
         (and (= :outbound type) (= normalized (ethereum/normalized-address from)))
         (and (= :failed type) (= normalized (ethereum/normalized-address from))))))
+
+(defn- dedupe-transactions [tx1 tx2]
+  (cond (tx-and-transfer? tx1 tx2) (combine-entries tx1 tx2)
+        (tx-and-transfer? tx2 tx1) (combine-entries tx2 tx1)
+        (both-transfer? tx1 tx2)   (update-confirmations tx1 tx2)
+        :else tx2))
 
 (handlers/register-handler-fx
  :update-transactions-success
@@ -154,6 +161,32 @@
     (or (nil? last-updated-at)
         (< sync-interval-ms
            (- (time/timestamp) last-updated-at)))))
+
+(defn async-periodic-now [async-periodic-chan]
+  (put! async-periodic-chan true))
+
+(defn async-periodic-stop [async-periodic-chan]
+  (close! async-periodic-chan))
+
+(defn- async-periodic-exec
+  "Periodically execute an function.
+  Takes a work-fn of one argument `finished-fn -> any` this function
+  is passed a finished-fn that must be called to signal that the work
+  being performed in the work-fn is finished.
+
+  The work-fn can be forced to run immediately "
+  [work-fn timeout-ms]
+  {:pre [(integer? timeout-ms)]}
+  (let [do-now-chan (async/chan (async/sliding-buffer 1))]
+    (go-loop []
+      (let [timeout (async-util/timeout timeout-ms)
+            finished-chan (async/promise-chan)
+            [v ch] (async/alts! [do-now-chan timeout])]
+        (when-not (and (= ch do-now-chan) (nil? v))
+          (work-fn #(async/put! finished-chan true))
+          (async/<! finished-chan)
+          (recur))))
+    do-now-chan))
 
 (fx/defn sync
   "Fetch updated data for any unconfirmed transactions or incoming chat transactions missing in wallet
