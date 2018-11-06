@@ -4,8 +4,12 @@
             [status-im.utils.ethereum.core :as ethereum]
             [status-im.utils.ethereum.tokens :as tokens]
             [status-im.utils.semaphores :as semaphores]
+            [status-im.utils.ethereum.erc20 :as erc20]
+            [status-im.utils.handlers :as handlers]
+            [status-im.utils.transactions :as transactions]
             [taoensso.timbre :as log]
-            [status-im.utils.fx :as fx]))
+            [status-im.utils.fx :as fx]
+            [re-frame.core :as re-frame]))
 
 (def sync-interval-ms 15000)
 (def confirmations-count-threshold 12)
@@ -61,6 +65,70 @@
 (fx/defn schedule-sync [cofx]
   {:utils/dispatch-later [{:ms       sync-interval-ms
                            :dispatch [:sync-wallet-transactions]}]})
+
+(defn combine-entries [transaction token-transfer]
+  (merge transaction (select-keys token-transfer [:symbol :from :to :value :type :token :transfer])))
+
+(defn update-confirmations [tx1 tx2]
+  (assoc tx1 :confirmations (max (:confirmations tx1)
+                                 (:confirmations tx2))))
+
+(defn- tx-and-transfer?
+  "A helper function that checks if first argument is a transaction and the second argument a token transfer object."
+  [tx1 tx2]
+  (and (not (:transfer tx1)) (:transfer tx2)))
+
+(defn- both-transfer?
+  [tx1 tx2]
+  (and (:transfer tx1) (:transfer tx2)))
+
+(defn dedupe-transactions [tx1 tx2]
+  (cond (tx-and-transfer? tx1 tx2) (combine-entries tx1 tx2)
+        (tx-and-transfer? tx2 tx1) (combine-entries tx2 tx1)
+        (both-transfer? tx1 tx2)   (update-confirmations tx1 tx2)
+        :else tx2))
+
+(defn own-transaction? [address [_ {:keys [type to from]}]]
+  (let [normalized (ethereum/normalized-address address)]
+    (or (and (= :inbound type) (= normalized (ethereum/normalized-address to)))
+        (and (= :outbound type) (= normalized (ethereum/normalized-address from)))
+        (and (= :failed type) (= normalized (ethereum/normalized-address from))))))
+
+(handlers/register-handler-fx
+ :update-transactions-success
+ (fn [{:keys [db]} [_ transactions address]]
+   ;; NOTE(goranjovic): we want to only show transactions that belong to the current account
+   ;; this filter is to prevent any late transaction updates initated from another account on the same
+   ;; device from being applied in the current account.
+   (let [own-transactions (into {} (filter #(own-transaction? address %) transactions))]
+     {:db (-> db
+              (update-in [:wallet :transactions] #(merge-with dedupe-transactions % own-transactions))
+              (assoc-in [:wallet :transactions-loading?] false))})))
+
+(handlers/register-handler-fx
+ :update-transactions-fail
+ (fn [{:keys [db]} [_ err]]
+   (log/debug "Unable to get transactions: " err)
+   {:db
+    (-> db
+        (assoc-in [:wallet :errors :transactions-update]
+                  :error-unable-to-get-transactions)
+        (assoc-in [:wallet :transactions-loading?] false))}))
+
+(re-frame/reg-fx
+ :get-transactions
+ (fn [{:keys [web3 chain account-id token-addresses success-event error-event]}]
+   (transactions/get-transactions chain
+                                  account-id
+                                  #(re-frame/dispatch [success-event % account-id])
+                                  #(re-frame/dispatch [error-event %]))
+   (doseq [direction [:inbound :outbound]]
+     (erc20/get-token-transactions web3
+                                   chain
+                                   token-addresses
+                                   direction
+                                   account-id
+                                   #(re-frame/dispatch [success-event % account-id])))))
 
 (fx/defn run-update [{{:keys [network network-status web3] :as db} :db}]
   (when (not= network-status :offline)
