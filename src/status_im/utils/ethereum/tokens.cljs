@@ -491,7 +491,7 @@
                    {:symbol  :KDO
                     :nft?    true
                     :name    "KudosToken"
-                    :address "0x93bB0AFbd0627Bbd3a6C72Bc318341D3A22e254a"}])
+                    :address "0x93b0afbd0627bbd3a6c72bc318341d3a22e254a"}])
 
    :custom  []})
 
