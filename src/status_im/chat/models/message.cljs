@@ -78,7 +78,7 @@
                (not= from (:current-public-key db))
                (get-in db [:account/account :desktop-notifications?])
                (< (time/seconds-ago (time/to-date timestamp)) constants/one-earth-day))
-      (.sendNotification react/desktop-notification (:text content)))
+      (.sendNotification react/desktop-notification (:text content) (get-in db [:chats chat-id :name])))
     (let [fx {:db            (cond->
                               (-> db
                                   (update-in [:chats chat-id :messages] assoc message-id prepared-message)
