@@ -131,7 +131,7 @@
                       ;; confirmations count.
                       :transfer      true}]))))))
 
-(defn add-block-info [web3 current-block-number chain-tokens direction result success-fn]
+(defn- add-block-info [web3 current-block-number chain-tokens direction result success-fn]
   (let [transfers-by-block (group-by :blockNumber result)]
     (doseq [[block-number transfers] transfers-by-block]
       (ethereum/get-block-info web3 (ethereum/hex->int block-number)
@@ -163,7 +163,7 @@
 ;; - topics[2] - address of token sender with leading zeroes padding up to 32 bytes
 ;;
 
-(defn get-token-transfer-logs
+(defn- get-token-transfer-logs
   ;; NOTE(goranjovic): here we use direct JSON-RPC calls to get event logs because of web3 event issues with infura
   ;; we still use web3 to get other data, such as block info
   [web3 current-block-number chain-tokens direction address cb]
@@ -182,7 +182,7 @@
     (status/call-private-rpc payload
                              (response-handler web3 current-block-number chain-tokens direction ethereum/handle-error cb))))
 
-(defn get-token-transactions
+(defn- get-token-transactions
   [web3 chain-tokens direction address cb]
   (ethereum/get-block-number web3
                              #(get-token-transfer-logs web3 % chain-tokens direction address cb)))
@@ -200,7 +200,7 @@
     (:mainnet) nil
     (:rinkeby) "rinkeby"))
 
-(defn get-transaction-details-url [chain hash]
+(defn- get-transaction-details-url [chain hash]
   (when (etherscan-supported? chain)
     (let [network-subdomain (get-network-subdomain chain)]
       (str "https://" (when network-subdomain (str network-subdomain ".")) "etherscan.io/tx/" hash))))
@@ -213,7 +213,7 @@
     (:mainnet) "api"
     (:rinkeby) "api-rinkeby"))
 
-(defn get-transaction-url [chain account]
+(defn- get-transaction-url [chain account]
   (let [network-subdomain (get-api-network-subdomain chain)]
     (str "https://" network-subdomain ".etherscan.io/api?module=account&action=txlist&address=0x"
          account "&startblock=0&endblock=99999999&sort=desc&apikey=" etherscan-api-key "?q=json")))
@@ -256,7 +256,8 @@
                 on-error))
     (log/info "Etherscan not supported for " chain)))
 
-(defn get-transactions [{:keys [web3 chain chain-tokens account-address success-fn error-fn]}]
+(defn- get-transactions [{:keys [web3 chain chain-tokens account-address success-fn error-fn]}]
+  (log/debug "Syncing transactions data..")
   (etherscan-transactions chain
                           account-address
                           success-fn
@@ -272,8 +273,11 @@
 ;; Periodic background job
 ;; ---------------------------------------------------------------------------
 
-(defn- async-periodic-run! [async-periodic-chan]
-  (async/put! async-periodic-chan true))
+(defn- async-periodic-run!
+  ([async-periodic-chan]
+   (async-periodic-run! async-periodic-chan true))
+  ([async-periodic-chan worker-fn]
+   (async/put! async-periodic-chan worker-fn)))
 
 (defn- async-periodic-stop! [async-periodic-chan]
   (async/close! async-periodic-chan))
@@ -291,10 +295,12 @@
     (go-loop []
       (let [timeout (async-util/timeout interval-ms)
             finished-chan (async/promise-chan)
-            [v ch] (async/alts! [do-now-chan timeout])]
+            [v ch] (async/alts! [do-now-chan timeout])
+            worker (if (and (= ch do-now-chan) (fn? v))
+                     v work-fn)]
         (when-not (and (= ch do-now-chan) (nil? v))
           (try
-            (work-fn #(async/put! finished-chan true))
+            (worker #(async/put! finished-chan true))
             ;; if an error occurs in work-fn log it and consider it done
             (catch :default e
               (log/error "failed to run transaction sync" e)
@@ -303,34 +309,6 @@
           (async/alts! [finished-chan (async-util/timeout timeout-ms)])
           (recur))))
     do-now-chan))
-
-(defn new-sync [{:keys [web3 account-address chain chain-tokens fetch-data-fn success-fn error-fn]}]
-  (let [{:keys [app-state
-                network-status
-                wallet chats]}
-        (fetch-data-fn)
-        chat-transaction-ids (chat-map->transaction-ids chats)
-        transaction-map (:transactions wallet)
-        transaction-ids (set (keys transaction-map))]
-    (if (and (not= network-status :offline)
-             (= app-state "active")
-             (or (have-unconfirmed-transactions? (vals transaction-map))
-                 (not-empty (set/difference chat-transaction-ids transaction-ids))))
-      (when-not (= :custom chain)
-        (let []
-          (log/debug "Syncing transactions data..")
-          (get-transactions
-           {:account-address account-address
-            :chain           chain
-            :chain-tokens    chain-tokens
-            :web3            web3
-            :success-fn      (fn [transactions]
-                               (success-fn transactions account-address))
-            :error-fn        error-fn}))))))
-
-;; -----------------------------------------------------------------------------
-;; merge duplicate transactions to update their information
-;; -----------------------------------------------------------------------------
 
 (letfn [(combine-entries [transaction token-transfer]
           (merge transaction (select-keys token-transfer [:symbol :from :to :value :type :token :transfer])))
@@ -349,55 +327,98 @@
           (both-transfer? tx1 tx2)   (update-confirmations tx1 tx2)
           :else tx2)))
 
+;; The following Code represents how fetching transactions is complected with the rest of the application
+
 (defonce polling-executor (atom nil))
 
-(defn sync-now! []
+(defn- sync-now! [{:keys [network-status :account/account app-state network web3] :as opts}]
   (when @polling-executor
-    (async-periodic-run! @polling-executor)))
+    (let [chain (ethereum/network->chain-keyword (get-in account [:networks network]))]
+      (when (and (not= network-status :offline)
+                 (= app-state "active")
+                 (not= :custom chain))
+        (async-periodic-run!
+         @polling-executor
+         (fn [done-fn]
+           (let [account-address (:address account)
+                 chain-tokens    (into {} (map (juxt :address identity)
+                                               (tokens/tokens-for chain)))]
+             (get-transactions
+              {:account-address account-address
+               :chain           chain
+               :chain-tokens    chain-tokens
+               :web3            web3
+               :success-fn (fn [transactions]
+                             (swap! re-frame.db/app-db
+                                    (fn [app-db]
+                                      (when (= (get-in app-db [:account/account :address])
+                                               account-address)
+                                        (update-in app-db
+                                                   [:wallet :transactions]
+                                                   #(merge-with dedupe-transactions % transactions)))))
+                             (done-fn))
+               :error-fn   (fn [http-error]
+                             (log/debug "Unable to get transactions: " http-error)
+                             (done-fn))}))))))))
 
-(defn new-start-sync! [{:keys [account network web3]}]
-  (let [account-address (:address account)
+;; this function handles background syncing of transactions
+(defn- background-sync [web3 account-address done-fn]
+  (let [{:keys [network network-status :account/account app-state wallet chats]} @re-frame.db/app-db
         chain (ethereum/network->chain-keyword (get-in account [:networks network]))
-        chain-tokens (into {} (map (juxt :address identity)
-                                   (tokens/tokens-for chain)))]
+        chain-tokens (into {} (map (juxt :address identity) (tokens/tokens-for chain)))]
+    (assert (and web3 account-address network network-status account app-state wallet chats)
+            "Must have all necessary data to run background transation sync")
+    (if-not (and (not= network-status :offline)
+                 (= app-state "active")
+                 (not= :custom chain))
+      (done-fn)
+      (let [chat-transaction-ids (chat-map->transaction-ids chats)
+            transaction-map (:transactions wallet)
+            transaction-ids (set (keys transaction-map))]
+        (if-not (or (have-unconfirmed-transactions? (vals transaction-map))
+                    (not-empty (set/difference chat-transaction-ids transaction-ids)))
+          (done-fn)
+          (do
+            (get-transactions
+             {:account-address account-address
+              :chain           chain
+              :chain-tokens    chain-tokens
+              :web3            web3
+              :success-fn (fn [transactions]
+                            (swap! re-frame.db/app-db
+                                   (fn [app-db]
+                                     (when (= (get-in app-db [:account/account :address])
+                                              account-address)
+                                       (update-in app-db
+                                                  [:wallet :transactions]
+                                                  #(merge-with dedupe-transactions % transactions)))))
+                            (done-fn))
+              :error-fn   (fn [http-error]
+                            (log/debug "Unable to get transactions: " http-error)
+                            (done-fn))})))))))
+
+(defn- start-sync! [{:keys [:account/account network web3] :as options}]
+  (let [account-address (:address account)]
     (when @polling-executor
       (async-periodic-stop! @polling-executor))
     (reset! polling-executor
             (async-periodic-exec
-             (fn [done-fn]
-               (new-sync
-                {:web3 web3
-                 :account-address account-address
-                 :chain chain
-                 :chain-tokens chain-tokens
-                 :fetch-data-fn (fn [] @re-frame.db/app-db)
-                 :success-fn (fn [transactions]
-                               (swap! re-frame.db/app-db
-                                      (fn [app-db]
-                                        (when (= (get-in app-db [:account/account :address])
-                                                 account-address)
-                                          (update-in app-db
-                                                     [:wallet :transactions]
-                                                     #(merge-with dedupe-transactions % transactions)))))
-                               (done-fn))
-                 :error-fn (fn [http-error]
-                             (log/debug "Unable to get transactions: " http-error)
-                             (done-fn))}))
+             (partial #'background-sync web3 account-address)
              sync-interval-ms
              sync-timeout-ms)))
-  (sync-now!))
-
-;;
-
-(re-frame/reg-fx ::sync-transactions-now #(sync-now!))
+  (sync-now! options))
 
 (re-frame/reg-fx
- ::start-sync-transactions
- (fn [params]
-   (new-start-sync! params)))
+ ::sync-transactions-now
+ (fn [db]
+
+   (sync-now! db)))
+
+(re-frame/reg-fx ::start-sync-transactions
+                 (fn [db] (start-sync! db)))
 
 (fx/defn start-sync [{:keys [db]}]
-  {::start-sync-transactions (select-keys db [:account/account :network :web3])})
+  {::start-sync-transactions (select-keys db [:network-status :account/account :app-state :network :web3])})
 
 (re-frame/reg-fx
  ::stop-sync-transactions

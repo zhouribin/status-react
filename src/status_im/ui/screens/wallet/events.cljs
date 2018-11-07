@@ -88,8 +88,9 @@
 
 (handlers/register-handler-fx
  :update-transactions
- (fn [cofx _]
-   {::wallet.transactions/sync-transactions-now nil}))
+ (fn [{:keys [db]} _]
+   {::wallet.transactions/sync-transactions-now
+    (select-keys db [:network-status :account/account :app-state :network :web3])}))
 
 (handlers/register-handler-fx
  :update-balance-success
