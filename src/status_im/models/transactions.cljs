@@ -293,8 +293,14 @@
             finished-chan (async/promise-chan)
             [v ch] (async/alts! [do-now-chan timeout])]
         (when-not (and (= ch do-now-chan) (nil? v))
-          (work-fn #(async/put! finished-chan true))
-          (async/<! finished-chan)
+          (try
+            (work-fn #(async/put! finished-chan true))
+            ;; if an error occurs in work-fn log it and consider it done
+            (catch :default e
+              (log/error "failed to run transaction sync" e)
+              (async/put! finished-chan true)))
+          ;; sanity timeout for work-fn
+          (async/alts! [finished-chan (async-util/timeout (+ timeout-ms 5000))])
           (recur))))
     do-now-chan))
 
@@ -323,7 +329,7 @@
             :error-fn        error-fn}))))))
 
 ;; -----------------------------------------------------------------------------
-;; merge duplicate transactions to update their information 
+;; merge duplicate transactions to update their information
 ;; -----------------------------------------------------------------------------
 
 (letfn [(combine-entries [transaction token-transfer]
