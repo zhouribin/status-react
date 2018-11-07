@@ -86,10 +86,10 @@
  (fn [cofx _]
    (models/update-wallet cofx)))
 
-(handlers/register-handler
+(handlers/register-handler-fx
  :update-transactions
  (fn [cofx _]
-   {::wallet.sync-transactions-now nil}))
+   {::wallet.transactions/sync-transactions-now nil}))
 
 (handlers/register-handler-fx
  :update-balance-success
