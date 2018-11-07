@@ -4,7 +4,6 @@
             [clojure.string :as string]
             [status-im.utils.async :as async-util]
             [status-im.utils.ethereum.core :as ethereum]
-            [status-im.utils.ethereum.tokens :as tokens]
             [status-im.constants :as constants]
             [status-im.native-module.core :as status]
             [status-im.utils.ethereum.tokens :as tokens]
@@ -18,6 +17,7 @@
    [cljs.core.async.macros :refer [go-loop go]]))
 
 (def sync-interval-ms 15000)
+(def sync-timeout-ms  20000)
 (def confirmations-count-threshold 12)
 
 ;; TODO is it a good idea for :confirmations to be a string?
@@ -285,11 +285,11 @@
   being performed in the work-fn is finished.
 
   The work-fn can be forced to run immediately "
-  [work-fn timeout-ms]
-  {:pre [(integer? timeout-ms)]}
+  [work-fn interval-ms timeout-ms]
+  {:pre [(fn? work-fn) (integer? interval-ms) (integer? timeout-ms)]}
   (let [do-now-chan (async/chan (async/sliding-buffer 1))]
     (go-loop []
-      (let [timeout (async-util/timeout timeout-ms)
+      (let [timeout (async-util/timeout interval-ms)
             finished-chan (async/promise-chan)
             [v ch] (async/alts! [do-now-chan timeout])]
         (when-not (and (= ch do-now-chan) (nil? v))
@@ -300,7 +300,7 @@
               (log/error "failed to run transaction sync" e)
               (async/put! finished-chan true)))
           ;; sanity timeout for work-fn
-          (async/alts! [finished-chan (async-util/timeout (+ timeout-ms 5000))])
+          (async/alts! [finished-chan (async-util/timeout timeout-ms)])
           (recur))))
     do-now-chan))
 
@@ -383,7 +383,8 @@
                  :error-fn (fn [http-error]
                              (log/debug "Unable to get transactions: " http-error)
                              (done-fn))}))
-             sync-interval-ms)))
+             sync-interval-ms
+             sync-timeout-ms)))
   (sync-now!))
 
 ;;

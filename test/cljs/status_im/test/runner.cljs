@@ -7,6 +7,7 @@
             [status-im.test.browser.core]
             [status-im.test.browser.permissions]
             [status-im.test.wallet.subs]
+            [status-im.test.wallet.transactions]
             [status-im.test.wallet.transactions.subs]
             [status-im.test.wallet.transactions.views]
             [status-im.test.mailserver.core]
@@ -86,6 +87,7 @@
  'status-im.test.models.network
  'status-im.test.models.wallet
  'status-im.test.wallet.subs
+ 'status-im.test.wallet.transactions
  'status-im.test.wallet.transactions.subs
  'status-im.test.wallet.transactions.views
  'status-im.test.chat.models.loading
