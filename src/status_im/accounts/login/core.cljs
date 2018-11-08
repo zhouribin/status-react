@@ -60,18 +60,21 @@
                    :error error
                    :processing false)})))
 
-(fx/defn open-login [{:keys [db]} address photo-path name]
-  {:db (-> db
-           (update :accounts/login assoc
-                   :address address
-                   :photo-path photo-path
-                   :name name)
-           (update :accounts/login dissoc
-                   :error
-                   :password))
-   :keychain/can-save-user-password? nil
-   :keychain/get-user-password [address
-                                #(re-frame/dispatch [:accounts.login.callback/get-user-password-success %])]})
+(fx/defn open-login [{:keys [db] :as cofx} address photo-path name]
+  (fx/merge
+   cofx
+   {:db
+    (-> db
+        (update :accounts/login assoc
+                :address address
+                :photo-path photo-path
+                :name name)
+        (update :accounts/login dissoc
+                :error
+                :password))
+    :keychain/clear-user-password
+    address}
+   (navigation/navigate-to-clean :login nil)))
 
 (fx/defn open-login-callback
   [{:keys [db] :as cofx} password]
