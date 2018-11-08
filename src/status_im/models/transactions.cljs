@@ -191,19 +191,16 @@
 ;; etherscan tranasctions
 ;; --------------------------------------------------------------------------
 
-(def etherscan-supported?
-  #{:testnet :mainnet :rinkeby})
+(def etherscan-supported? #{:testnet :mainnet :rinkeby})
 
-(defn- get-network-subdomain [chain]
-  (case chain
-    (:testnet) "ropsten"
-    (:mainnet) nil
-    (:rinkeby) "rinkeby"))
-
-(defn- get-transaction-details-url [chain hash]
-  (when (etherscan-supported? chain)
-    (let [network-subdomain (get-network-subdomain chain)]
-      (str "https://" (when network-subdomain (str network-subdomain ".")) "etherscan.io/tx/" hash))))
+(let [network->subdomain {:testnet "ropsten" :rinkeby "rinkeby"}]
+  (defn get-transaction-details-url [chain hash]
+    {:pre [(keyword? chain) (string? hash)]
+     :post [(or (nil? %) (string? %))]}
+    (when (etherscan-supported? chain)
+      (let [network-subdomain (when-let [subdomain (network->subdomain chain)]
+                                (str subdomain "."))]
+        (str "https://" network-subdomain  "etherscan.io/tx/" hash)))))
 
 (def etherscan-api-key "DMSI4UAAKUBVGCDMVP3H2STAMSAUV7BYFI")
 
@@ -214,11 +211,16 @@
     (:rinkeby) "api-rinkeby"))
 
 (defn- get-transaction-url [chain account]
+  {:pre [(keyword? chain) (string? account)]
+   :post [(string? %)]}
   (let [network-subdomain (get-api-network-subdomain chain)]
     (str "https://" network-subdomain ".etherscan.io/api?module=account&action=txlist&address=0x"
-         account "&startblock=0&endblock=99999999&sort=desc&apikey=" etherscan-api-key "?q=json")))
+         account "&startblock=0&endblock=99999999&sort=desc&apikey=" etherscan-api-key "&q=json")))
 
-(defn- format-transaction [account {:keys [value timeStamp blockNumber hash from to gas gasPrice gasUsed nonce confirmations input isError]}]
+(defn- format-transaction [account
+                           {:keys [value timeStamp blockNumber hash from to
+                                   gas gasPrice gasUsed nonce confirmations
+                                   input isError]}]
   (let [inbound? (= (str "0x" account) to)
         error?   (= "1" isError)]
     {:value         value
@@ -240,13 +242,15 @@
      :data          input}))
 
 (defn- format-transactions-response [response account]
-  (->> response
-       types/json->clj
-       :result
-       (reduce (fn [transactions {:keys [hash] :as transaction}]
-                 (assoc transactions hash (format-transaction account transaction)))
-               {})))
+  (let [{:keys [result]} (types/json->clj response)]
+    (cond-> {}
+      (vector? result)
+      (into (comp
+             (map (partial format-transaction account))
+             (map (juxt :hash identity)))
+            result))))
 
+;; TODO: handle api argument errors
 (defn- etherscan-transactions [chain account on-success on-error]
   (if (etherscan-supported? chain)
     (let [url (get-transaction-url chain account)]
@@ -327,7 +331,10 @@
           (both-transfer? tx1 tx2)   (update-confirmations tx1 tx2)
           :else tx2)))
 
-;; The following Code represents how fetching transactions is complected with the rest of the application
+;; ----------------------------------------------------------------------------
+;; The following Code represents how fetching transactions is
+;; complected with the rest of the application
+;; ----------------------------------------------------------------------------
 
 (defonce polling-executor (atom nil))
 
@@ -349,6 +356,7 @@
                :chain-tokens    chain-tokens
                :web3            web3
                :success-fn (fn [transactions]
+                             (log/debug "Transactions received: " (pr-str (keys transactions)))
                              (swap! re-frame.db/app-db
                                     (fn [app-db]
                                       (when (= (get-in app-db [:account/account :address])
@@ -367,7 +375,7 @@
         chain (ethereum/network->chain-keyword (get-in account [:networks network]))
         chain-tokens (into {} (map (juxt :address identity) (tokens/tokens-for chain)))]
     (assert (and web3 account-address network network-status account app-state wallet chats)
-            "Must have all necessary data to run background transation sync")
+            "Must have all necessary data to run background transaction sync")
     (if-not (and (not= network-status :offline)
                  (= app-state "active")
                  (not= :custom chain))
@@ -378,24 +386,24 @@
         (if-not (or (have-unconfirmed-transactions? (vals transaction-map))
                     (not-empty (set/difference chat-transaction-ids transaction-ids)))
           (done-fn)
-          (do
-            (get-transactions
-             {:account-address account-address
-              :chain           chain
-              :chain-tokens    chain-tokens
-              :web3            web3
-              :success-fn (fn [transactions]
-                            (swap! re-frame.db/app-db
-                                   (fn [app-db]
-                                     (when (= (get-in app-db [:account/account :address])
-                                              account-address)
-                                       (update-in app-db
-                                                  [:wallet :transactions]
-                                                  #(merge-with dedupe-transactions % transactions)))))
-                            (done-fn))
-              :error-fn   (fn [http-error]
-                            (log/debug "Unable to get transactions: " http-error)
-                            (done-fn))})))))))
+          (get-transactions
+           {:account-address account-address
+            :chain           chain
+            :chain-tokens    chain-tokens
+            :web3            web3
+            :success-fn (fn [transactions]
+                          (log/debug "Transactions received: " (pr-str (keys transactions)))
+                          (swap! re-frame.db/app-db
+                                 (fn [app-db]
+                                   (when (= (get-in app-db [:account/account :address])
+                                            account-address)
+                                     (update-in app-db
+                                                [:wallet :transactions]
+                                                #(merge-with dedupe-transactions % transactions)))))
+                          (done-fn))
+            :error-fn   (fn [http-error]
+                          (log/debug "Unable to get transactions: " http-error)
+                          (done-fn))}))))))
 
 (defn- start-sync! [{:keys [:account/account network web3] :as options}]
   (let [account-address (:address account)]
@@ -410,9 +418,7 @@
 
 (re-frame/reg-fx
  ::sync-transactions-now
- (fn [db]
-
-   (sync-now! db)))
+ (fn [db] (sync-now! db)))
 
 (re-frame/reg-fx ::start-sync-transactions
                  (fn [db] (start-sync! db)))
