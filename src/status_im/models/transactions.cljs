@@ -21,62 +21,12 @@
 (def confirmations-count-threshold 12)
 (def block-query-limit 100000)
 
-;; TODO is it a good idea for :confirmations to be a string?
-;; Seq[transaction] -> truthy
-(defn- have-unconfirmed-transactions?
-  "Detects if some of the transactions have less than 12 confirmations"
-  [transactions]
-  {:pre [(every? string? (map :confirmations transactions))]}
-  (->> transactions
-       (map :confirmations)
-       (map int)
-       (some #(< % confirmations-count-threshold))))
-
-;; this could be a util but ensure that its needed elsewhere before moving
-(defn- keyed-memoize
-  "Space bounded memoize.
-
-  Takes a key-function that decides the key in the cache for the
-  memoized value. Takes a value function that will extract the value
-  that will invalidate the cache if it changes.  And finally the
-  function to memoize.
-
-  Memoize that doesn't grow bigger than the number of keys."
-  [key-fn val-fn f]
-  (let [val-store (atom {})
-        res-store (atom {})]
-    (fn [arg]
-      (let [k (key-fn arg)
-            v (val-fn arg)]
-        (if (not= (get @val-store k) v)
-          (let [res (f arg)]
-            #_(prn "storing!!!!" res)
-            (swap! val-store assoc k v)
-            (swap! res-store assoc k res)
-            res)
-          (get @res-store k))))))
-
-;; Map[id, chat] -> Set[transaction-id]
-(let [chat-map-entry->transaction-ids
-      (keyed-memoize key (comp :messages val)
-                     (fn [[_ chat]]
-                       (->> (:messages chat)
-                            vals
-                            (filter #(= "command" (:content-type %)))
-                            (keep #(get-in % [:content :params :tx-hash])))))]
-  (defn- chat-map->transaction-ids [chat-map]
-    {:pre [(every? :messages (vals chat-map))]
-     :post [(set? %)]}
-    (->> chat-map
-         (remove (comp :public? val))
-         (mapcat chat-map-entry->transaction-ids)
-         set)))
-
 ;; ----------------------------------------------------------------------------
-;; transactions from eth-node
+;; token transfer event logs from eth-node
 ;; ----------------------------------------------------------------------------
 
 (defn- parse-json [s]
+  {:pre [(string? s)]}
   (try
     (let [res (-> s
                   js/JSON.parse
@@ -88,14 +38,18 @@
       {:error (.-message e)})))
 
 (defn- add-padding [address]
-  (when address
-    (str "0x000000000000000000000000" (subs address 2))))
+  {:pre [(string? address)]}
+  (str "0x000000000000000000000000" (subs address 2)))
 
 (defn- remove-padding [topic]
-  (if topic
-    (str "0x" (subs topic 26))))
+  {:pre [(string? topic)]}
+  (str "0x" (subs topic 26)))
 
 (defn- parse-transaction-entries [current-block-number block-info chain-tokens direction transfers]
+  {:pre [(integer? current-block-number) (map? block-info)
+         (map? chain-tokens) (every? (fn [[k v]] (and (string? k) (map? v))) chain-tokens)
+         (keyword? direction)
+         (every? map? transfers)]}
   (into {}
         (keep identity
               (for [transfer transfers]
@@ -105,8 +59,8 @@
                      {:block         (-> block-info :number str)
                       :hash          (:transactionHash transfer)
                       :symbol        (:symbol token)
-                      :from          (-> transfer :topics second remove-padding)
-                      :to            (-> transfer :topics last remove-padding)
+                      :from          (some-> transfer :topics second remove-padding)
+                      :to            (some-> transfer :topics last remove-padding)
                       :value         (-> transfer :data ethereum/hex->bignumber)
                       :type          direction
 
@@ -133,6 +87,9 @@
                       :transfer      true}]))))))
 
 (defn- add-block-info [web3 current-block-number chain-tokens direction result success-fn]
+  {:pre [web3 (integer? current-block-number) (map? chain-tokens) (keyword? direction)
+         (every? map? result)
+         (fn? success-fn)]}
   (let [transfers-by-block (group-by :blockNumber result)]
     (doseq [[block-number transfers] transfers-by-block]
       (ethereum/get-block-info web3 (ethereum/hex->int block-number)
@@ -169,29 +126,29 @@
   ;; NOTE(goranjovic): here we use direct JSON-RPC calls to get event logs because of web3 event issues with infura
   ;; we still use web3 to get other data, such as block info
   [web3 current-block-number chain-tokens direction address cb]
+  {:pre [web3 (integer? current-block-number) (map? chain-tokens) (keyword? direction) (string? address) (fn? cb)]}
   (let [[from to] (if (= :inbound direction)
-                    [nil (ethereum/normalized-address address)]
-                    [(ethereum/normalized-address address) nil])
+                    [nil (add-padding (ethereum/normalized-address address))]
+                    [(add-padding (ethereum/normalized-address address)) nil])
         from-block (-> current-block-number (- block-query-limit) ethereum/int->hex)
         args {:jsonrpc "2.0"
               :id      2
               :method  constants/web3-get-logs
               :params  [{:address (keys chain-tokens)
                          :fromBlock from-block
-                         :topics    [constants/event-transfer-hash
-                                     (add-padding from)
-                                     (add-padding to)]}]}
+                         :topics    [constants/event-transfer-hash from to]}]}
         payload (.stringify js/JSON (clj->js args))]
     (status/call-private-rpc payload
                              (response-handler web3 current-block-number chain-tokens direction ethereum/handle-error cb))))
 
 (defn- get-token-transactions
   [web3 chain-tokens direction address cb]
+  {:pre [web3 (map? chain-tokens) (keyword? direction) (string? address) (fn? cb)]}
   (ethereum/get-block-number web3
                              #(get-token-transfer-logs web3 % chain-tokens direction address cb)))
 
 ;; --------------------------------------------------------------------------
-;; etherscan tranasctions
+;; etherscan transactions
 ;; --------------------------------------------------------------------------
 
 (def etherscan-supported? #{:testnet :mainnet :rinkeby})
@@ -279,6 +236,7 @@
 ;; ---------------------------------------------------------------------------
 ;; Periodic background job
 ;; ---------------------------------------------------------------------------
+;; TODO general utility ...
 
 (defn- async-periodic-run!
   ([async-periodic-chan]
@@ -316,6 +274,61 @@
           (async/alts! [finished-chan (async-util/timeout timeout-ms)])
           (recur))))
     do-now-chan))
+
+;; -----------------------------------------------------------------------------
+;; Helpers functions that help determine if a background sync should execute
+;; -----------------------------------------------------------------------------
+
+;; TODO general utility function
+(defn- keyed-memoize
+  "Space bounded memoize.
+
+  Takes a key-function that decides the key in the cache for the
+  memoized value. Takes a value function that will extract the value
+  that will invalidate the cache if it changes.  And finally the
+  function to memoize.
+
+  Memoize that doesn't grow bigger than the number of keys."
+  [key-fn val-fn f]
+  (let [val-store (atom {})
+        res-store (atom {})]
+    (fn [arg]
+      (let [k (key-fn arg)
+            v (val-fn arg)]
+        (if (not= (get @val-store k) v)
+          (let [res (f arg)]
+            #_(prn "storing!!!!" res)
+            (swap! val-store assoc k v)
+            (swap! res-store assoc k res)
+            res)
+          (get @res-store k))))))
+
+;; Map[id, chat] -> Set[transaction-id]
+(let [chat-map-entry->transaction-ids
+      (keyed-memoize key (comp :messages val)
+                     (fn [[_ chat]]
+                       (->> (:messages chat)
+                            vals
+                            (filter #(= "command" (:content-type %)))
+                            (keep #(get-in % [:content :params :tx-hash])))))]
+  (defn- chat-map->transaction-ids [chat-map]
+    {:pre [(every? :messages (vals chat-map))]
+     :post [(set? %)]}
+    (->> chat-map
+         (remove (comp :public? val))
+         (mapcat chat-map-entry->transaction-ids)
+         set)))
+
+;; TODO is it a good idea for :confirmations to be a string?
+;; Seq[transaction] -> truthy
+(defn- have-unconfirmed-transactions?
+  "Detects if some of the transactions have less than 12 confirmations"
+  [transactions]
+  {:pre [(every? string? (map :confirmations transactions))]}
+  (->> transactions
+       (map :confirmations)
+       (map int)
+       (some #(< % confirmations-count-threshold))))
 
 (letfn [(combine-entries [transaction token-transfer]
           (merge transaction (select-keys token-transfer [:symbol :from :to :value :type :token :transfer])))
