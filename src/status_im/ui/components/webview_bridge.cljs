@@ -10,7 +10,8 @@
 
 (def module (.-WebViewBridgeModule (.-NativeModules js-dependencies/react-native)))
 
-(defn webview-bridge [{:keys [dapp? dapp-name] :as opts}]
+(defn webview-bridge [{:keys [dapp? dapp-name source random-prop] :as opts}]
+  (let [_ (println "RENDER!!!" (:uri source) random-prop)])
   (if (and config/cached-webviews-enabled? platform/android? dapp?)
     (reagent.core/create-class
      (let [dapp-name-sent? (reagent.core/atom false)]

@@ -868,7 +868,7 @@
 (handlers/register-handler-fx
  :browser.ui/url-submitted
  (fn [cofx [_ url]]
-   (browser/open-url-in-current-browser cofx url)))
+   (browser/update-url-in-current-browser cofx url false true)))
 
 (handlers/register-handler-fx
  :browser.ui/message-link-pressed
@@ -902,8 +902,8 @@
 
 (handlers/register-handler-fx
  :browser/navigation-state-changed
- (fn [cofx [_ event error?]]
-   (browser/navigation-state-changed cofx event error?)))
+ (fn [cofx [_ event]]
+   (browser/navigation-state-changed cofx event)))
 
 (handlers/register-handler-fx
  :browser/bridge-message-received
@@ -919,6 +919,11 @@
  :browser/loading-started
  (fn [cofx _]
    (browser/update-browser-option cofx :error? false)))
+
+(handlers/register-handler-fx
+ :browser/update-otions
+ (fn [cofx [_ options]]
+   (browser/update-browser-options cofx options)))
 
 (handlers/register-handler-fx
  :browser.callback/resolve-ens-multihash-success

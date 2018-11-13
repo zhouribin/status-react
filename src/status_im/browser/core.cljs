@@ -123,6 +123,7 @@
     (when (can-go-back? browser)
       (fx/merge cofx
                 (update-browser (assoc browser :history-index (dec history-index)))
+                (update-browser-option :url-initialized? false)
                 (resolve-url nil)))))
 
 (defn can-go-forward? [{:keys [history-index history]}]
@@ -134,6 +135,7 @@
     (when (can-go-forward? browser)
       (fx/merge cofx
                 (update-browser (assoc browser :history-index (inc history-index)))
+                (update-browser-option :url-initialized? false)
                 (resolve-url nil)))))
 
 (fx/defn update-browser-history
@@ -181,38 +183,24 @@
             (update-browser-option :error? true)
             (update-browser-option :loading? false)))
 
-(fx/defn update-browser-on-nav-change
-  [cofx browser url loading? error?]
-  (let [options (get-in cofx [:db :browser/options])
+(fx/defn update-url-in-current-browser
+  [cofx url loading? force-url?]
+  (let [browser (get-current-browser (:db cofx))
+        options (get-in cofx [:db :browser/options])
         current-url (:url options)]
     (when (and (not= "about:blank" url) (not= current-url url) (not= (str current-url "/") url))
       (let [resolved-ens (first (filter #(not= (.indexOf url (second %)) -1) (:resolved-ens options)))
             resolved-url (if resolved-ens (string/replace url (second resolved-ens) (first resolved-ens)) url)]
         (fx/merge cofx
                   (update-browser-history browser resolved-url loading?)
-                  (resolve-url {:loading? loading? :error? error? :resolved-url (when resolved-ens url)}))))))
+                  #(when force-url?
+                     (update-browser-options % {:url-initialized? false :url-editing? false}))
+                  (resolve-url {:loading? loading? :error? (:error? options) :resolved-url (when resolved-ens url)}))))))
 
 (fx/defn navigation-state-changed
-  [cofx event error?]
-  (let [browser (get-current-browser (:db cofx))
-        {:strs [url loading]} (js->clj event)]
-    (fx/merge cofx
-              #(when platform/ios?
-                 (update-browser-option % :loading? loading))
-              (update-browser-on-nav-change browser url loading error?))))
-
-(fx/defn open-url-in-current-browser
-  "Opens a url in the current browser, which mean no new entry is added to the home page
-  and history of the current browser is updated so that the user can navigate back to the
-  origin url"
-  ;; TODO(yenda) is that desirable ?
-  [cofx url]
-  (let [browser (get-current-browser (:db cofx))
-        normalized-url (http/normalize-and-decode-url url)]
-    (fx/merge cofx
-              (update-browser-option :url-editing? false)
-              (update-browser-history browser normalized-url false)
-              (resolve-url nil))))
+  [cofx event]
+  (let [{:strs [url loading]} (js->clj event)]
+    (update-url-in-current-browser cofx url loading false)))
 
 (fx/defn open-url
   "Opens a url in the browser. If a host can be extracted from the url and

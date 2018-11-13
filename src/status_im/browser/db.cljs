@@ -18,6 +18,7 @@
 (spec/def :browser/resolved-ens (spec/nilable map?))
 (spec/def :browser/pending-permissions (spec/nilable list?))
 (spec/def :browser/yielding-control? (spec/nilable boolean?))
+(spec/def :browser/url-initialized? (spec/nilable boolean?))
 
 (spec/def :browser/options
   (spec/nilable
@@ -30,6 +31,7 @@
                        :browser/show-permission
                        :browser/pending-permissions
                        :browser/yielding-control?
+                       :browser/url-initialized?
                        :browser/resolved-ens
                        :browser/error?])))
 
