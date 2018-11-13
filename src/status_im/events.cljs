@@ -634,11 +634,13 @@
 (handlers/register-handler-fx
  :chat.ui/set-chat-input-text
  (fn [cofx [_ text]]
+   (println "TEXT" text)
    (chat.input/set-chat-input-text cofx text)))
 
 (handlers/register-handler-fx
  :chat.ui/select-chat-input-command
  (fn [cofx [_ command params previous-command-message]]
+   (println "SELECT" command)
    (chat.input/select-chat-input-command cofx command params previous-command-message)))
 
 (handlers/register-handler-fx

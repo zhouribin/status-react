@@ -41,6 +41,8 @@
        :on-selection-change    #(let [s (-> (.-nativeEvent %)
                                             (.-selection))
                                       end (.-end s)]
+                                  (println "SELECTION" end)
+                                  ;(commands.input/selected-chat-command input-text selection commands)
                                   (re-frame/dispatch [:chat.ui/set-chat-ui-props {:selection end}]))
        :style                  (style/input-view single-line-input?)
        :placeholder-text-color colors/gray
@@ -71,6 +73,7 @@
                                                         :placeholder   placeholder})]
     {:component-did-update on-update}
     [react/animated-view {:style (style/input-helper-view width opacity-value)}
+     (println "input-helper" placeholder)
      [react/text {:style (style/input-helper-text width)}
       placeholder]]))
 
@@ -88,6 +91,7 @@
           set-container-width-fn #(reagent/set-state component {:container-width %})
           {:keys [width]} (reagent/state component)]
       [react/view {:style style/input-root}
+       (println "input-view" command)
        [react/animated-view {:style style/input-animated}
         [invisible-input {:set-layout-width-fn set-layout-width-fn}]
         [basic-text-input {:set-container-width-fn set-container-width-fn

@@ -147,6 +147,10 @@
  (fn [_ [_ m]]
    {::arithmetic m}))
 
+(re-frame/reg-fx
+ ::alert
+ (fn [value] (js/alert value)))
+
 (defn button [{:keys [on-click]} label]
   [button/secondary-button {:on-press #(re-frame/dispatch (on-click {}))} label])
 
@@ -283,7 +287,9 @@
                                :method     :string
                                :params?    :vector
                                :outputs?   :vector
-                               :on-result  :event}}}
+                               :on-result  :event}}
+                'wallet/update
+                {:value     :update-wallet}}
    :hooks      {:commands commands/command-hook}})
 
 (defn parse [{:keys [data]}]

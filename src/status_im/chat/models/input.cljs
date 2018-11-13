@@ -29,6 +29,7 @@
   "Set input text for current-chat. Takes db and input text and cofx
   as arguments and returns new fx. Always clear all validation messages."
   [{{:keys [current-chat-id] :as db} :db} new-input]
+  (println "set-chat-input-text" new-input)
   {:db (-> (chat/set-chat-ui-props db {:validation-messages nil})
            (assoc-in [:chats current-chat-id :input-text] (text->emoji new-input)))})
 
@@ -73,6 +74,7 @@
 (fx/defn select-chat-input-command
   "Sets chat command and focuses on input"
   [{:keys [db] :as cofx} command params previous-command-message]
+  (println "AA" "Select chat input command")
   (fx/merge cofx
             (commands.input/set-command-reference previous-command-message)
             (commands.input/select-chat-input-command command params)
