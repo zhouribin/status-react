@@ -9,7 +9,8 @@
             [status-im.utils.keychain.core :as keychain]
             [status-im.utils.types :as types]
             [taoensso.timbre :as log]
-            [status-im.utils.security :as security]))
+            [status-im.utils.security :as security]
+            [status-im.utils.datetime :as time]))
 
 ;; login flow:
 ;;
@@ -33,7 +34,7 @@
       (catch (fn [error]
                (log/warn "Could not change account" error)
                ;; If all else fails we fallback to showing initial error
-               (re-frame/dispatch [:init.callback/account-change-error])))))
+               (re-frame/dispatch [:init.callback/account-change-error (str error)])))))
 
 ;;;; Handlers
 (fx/defn login [cofx]
