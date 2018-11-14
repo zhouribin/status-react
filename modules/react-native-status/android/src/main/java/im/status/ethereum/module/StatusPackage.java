@@ -5,7 +5,7 @@ import com.facebook.react.bridge.JavaScriptModule;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.uimanager.ViewManager;
-import com.github.status_im.status_go.Statusgo;
+import status.Status;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,7 +45,7 @@ public class StatusPackage implements ReactPackage {
         return new Function<String, String>() {
             @Override
             public String apply(String payload) {
-                return Statusgo.CallRPC(payload);
+                return Status.callRPC(payload);
             }
         };
     }
