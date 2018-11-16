@@ -27,7 +27,7 @@ class MailServerElement(TextElement):
 class ProfileView(BaseView):
     def __init__(self):
         super(ProfileView, self).__init__()
-        self.share_my_code_button = BaseElement(IMAGES_PATH + '/share_my_code_button.png')
+        self.share_my_code_button = TextElement('Share my contact code')
         self.copy_code_button = BaseElement(IMAGES_PATH + '/copy_code_button.png')
         self.log_out_button = BaseElement(IMAGES_PATH + '/log_out_button.png')
 

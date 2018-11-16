@@ -28,6 +28,13 @@ class BaseElement(object):
         self.find_element(log=False)
         click(self.screenshot)
 
+    def is_visible(self):
+        try:
+            wait(self.screenshot, 10)
+            return True
+        except FindFailed:
+            return False
+
     def verify_element_is_not_present(self):
         logging.info('Verify: %s is not present' % self.name)
         try:
@@ -63,14 +70,36 @@ class InputField(BaseElement):
 
 class TextElement(object):
     def __init__(self, text):
+        self.text = text
         self.element_line = None
+
+    def find_element(self):
         for _ in range(3):
             lines = collectLines()
             for line in lines:
-                if text in line.getText().encode('ascii', 'ignore'):
+                if self.text in line.getText().encode('ascii', 'ignore'):
                     self.element_line = line
                     return
             time.sleep(3)
+        pytest.fail("Element with text '%s' was not found" % self.text)
 
     def click(self):
+        logging.info("Click %s button" % self.text)
+        self.find_element()
         self.element_line.click()
+
+    def is_visible(self):
+        from _pytest.runner import Failed
+        try:
+            self.find_element()
+            return True
+        except Failed:
+            return False
+
+    def verify_element_is_not_present(self):
+        from _pytest.runner import Failed
+        try:
+            self.find_element()
+        except Failed:
+            return
+        pytest.fail("'%s text is displayed but not expected'" % self.text)

@@ -29,6 +29,7 @@ class BaseView(object):
         self.home_button = BaseElement(IMAGES_PATH + '/home_button.png')
         self.profile_button = ProfileButton()
         self.back_button = BaseElement(IMAGES_PATH + '/back_button.png')
+        self.ok_button = BaseElement(IMAGES_PATH + '/ok_button.png')
 
     def find_text(self, expected_text):
         logging.info("Find text '%s'" % expected_text)

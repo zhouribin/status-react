@@ -6,13 +6,15 @@ import pytest
 
 class TestProfile(BaseTestCase):
 
+    @pytest.mark.testrail_id(5590)
     def test_copy_contact_code(self):
         sign_in = SignInView()
         sign_in.recover_access(base_user['passphrase'])
         profile = sign_in.profile_button.click()
         profile.share_my_code_button.click()
         profile.copy_code_button.click()
-        assert profile.get_clipboard() == base_user['public_key']
+        if profile.get_clipboard() != base_user['public_key']:
+            pytest.fail('Contact code was not copied to clipboard')
 
     @pytest.mark.skip('Test cases is not ready yet')
     def test_change_mail_server(self):
