@@ -66,7 +66,8 @@
     [react/view {:style styles/border-top-justify}
      [react/view] ;; crappy way to vertically center things
      [react/view {:style {:padding-left 36 :padding-right 36}}
-      [react/view {:style styles/signing-phrase}
+      [react/view {:style styles/signing-phrase
+                   :accessibility-label :signing-phrase}
        (map
         (fn [word container-style]
           ^{:key (str "signing-word-" word)}
