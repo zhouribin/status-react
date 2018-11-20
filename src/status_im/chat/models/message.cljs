@@ -205,7 +205,7 @@
     (not (or (get messages message-id)
              (get not-loaded-message-ids message-id)
              (>= deleted-at-clock-value clock-value)
-             (messages-store/message-exists? chat-id)))))
+             (messages-store/message-exists? message-id)))))
 
 (defn- filter-messages [cofx messages]
   (:accumulated (reduce (fn [{:keys [seen-ids] :as acc}
