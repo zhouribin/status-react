@@ -67,12 +67,14 @@
   "Adds new public group chat to db & realm"
   [cofx topic]
   (upsert-chat cofx
-               {:chat-id          topic
-                :is-active        true
-                :name             topic
-                :group-chat       true
-                :contacts         #{}
-                :public?          true}))
+               {:chat-id                      topic
+                :is-active                    true
+                :name                         topic
+                :group-chat                   true
+                :contacts                     #{}
+                :public?                      true
+                :unviewed-messages-count      0
+                :loaded-unviewed-messages-ids #{}}))
 
 (fx/defn add-group-chat
   "Adds new private group chat to db & realm"
@@ -100,8 +102,7 @@
     {:db            (update-in db [:chats chat-id] merge
                                {:messages           empty-message-map
                                 :message-groups         {}
-                                :unviewed-messages      #{}
-                                :not-loaded-message-ids #{}
+                                :unviewed-messages-count 0
                                 :deleted-at-clock-value last-message-clock-value})
      :data-store/tx [(chats-store/clear-history-tx chat-id last-message-clock-value)
                      (messages-store/delete-messages-tx chat-id)]}))
@@ -135,7 +136,7 @@
     (protocol/send (protocol/map->MessagesSeen {:message-ids message-ids}) chat-id cofx)))
 
 (defn- unread-messages-number [chats]
-  (apply + (map (comp count :unviewed-messages) chats)))
+  (apply + (map :unviewed-messages-count chats)))
 
 (fx/defn update-dock-badge-label
   [cofx]
@@ -155,29 +156,36 @@
 (fx/defn mark-messages-seen
   "Marks all unviewed loaded messages as seen in particular chat"
   [{:keys [db] :as cofx} chat-id]
-  (when-let [all-unviewed-ids (seq (get-in db [:chats chat-id :unviewed-messages]))]
-    (let [me                  (accounts.db/current-public-key cofx)
-          updated-statuses    (keep (fn [message-id]
-                                      (some-> db
-                                              (get-in [:chats chat-id :message-statuses
-                                                       message-id me])
-                                              (assoc :status :seen)))
-                                    all-unviewed-ids)
-          loaded-unviewed-ids (map :message-id updated-statuses)]
-      (when (seq loaded-unviewed-ids)
-        (fx/merge cofx
-                  {:db (-> (reduce (fn [acc {:keys [message-id status]}]
-                                     (assoc-in acc [:chats chat-id :message-statuses
-                                                    message-id me :status]
-                                               status))
-                                   db
-                                   updated-statuses)
-                           (update-in [:chats chat-id :unviewed-messages]
-                                      #(apply disj % loaded-unviewed-ids)))
-                   :data-store/tx [(user-statuses-store/save-statuses-tx updated-statuses)]}
-                  (send-messages-seen chat-id loaded-unviewed-ids)
-                  (when platform/desktop?
-                    (update-dock-badge-label)))))))
+  (let [public-key          (accounts.db/current-public-key cofx)
+        loaded-unviewed-ids (get-in db [:chats chat-id :loaded-unviewed-messages-ids])
+        unviewed-messages-count (get-in db [:chats chat-id :unviewed-messages-count])
+        updated-statuses    (map (fn [message-id]
+                                   {:chat-id    chat-id
+                                    :message-id message-id
+                                    :status-id  (str chat-id "-" message-id)
+                                    :public-key public-key
+                                    :status     :seen})
+                                 loaded-unviewed-ids)]
+    (when (seq loaded-unviewed-ids)
+      (fx/merge cofx
+                {:db            (reduce (fn [acc {:keys [message-id status]}]
+                                          (assoc-in acc [:chats chat-id :message-statuses
+                                                         message-id public-key :status]
+                                                    status))
+                                        db
+                                        updated-statuses)
+                 :data-store/tx [(user-statuses-store/save-statuses-tx updated-statuses)]}
+                (upsert-chat {:chat-id
+                              chat-id
+                              :unviewed-messages-count
+                              (max 0
+                                   (- unviewed-messages-count
+                                      (count loaded-unviewed-ids)))
+                              :loaded-unviewed-messages-ids
+                              #{}})
+                (send-messages-seen chat-id loaded-unviewed-ids)
+                (when platform/desktop?
+                  (update-dock-badge-label))))))
 
 (fx/defn preload-chat-data
   "Takes chat-id and coeffects map, returns effects necessary when navigating to chat"

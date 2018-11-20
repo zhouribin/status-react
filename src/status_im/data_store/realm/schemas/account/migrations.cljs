@@ -214,3 +214,16 @@
 
     (doseq [status @statuses-to-be-deleted]
       (.delete new-realm status))))
+
+(defn v26 [old-realm new-realm]
+  (log/debug "migrating v26 account database")
+  (let [chats (.objects new-realm "chat")]
+    (dotimes [i (.-length chats)]
+      (let [chat                (aget chats i)
+            chat-id             (aget chat "chat-id")
+            user-statuses-count (-> (.objects new-realm "user-statuses")
+                                    (.filtered (str "chat-id=\"" chat-id "\""
+                                                    " and "
+                                                    "status = \"received\""))
+                                    (.-length))]
+        (aset chat "unviewed-messages-count" user-statuses-count)))))

@@ -53,27 +53,34 @@
         (vals message-id->messages)))
 
 (fx/defn load-chats-messages
-  [{:keys [db get-stored-messages get-stored-user-statuses
-           get-referenced-messages get-stored-unviewed-messages]
+  [{:keys [db get-stored-messages get-stored-user-statuses get-referenced-messages]
     :as cofx}]
-  (let [chats (:chats db)]
+  (let [chats (:chats db)
+        public-key (accounts.db/current-public-key cofx)]
     (fx/merge
      cofx
      {:db (assoc
            db :chats
            (reduce
             (fn [chats chat-id]
-              (let [stored-unviewed-messages (get-stored-unviewed-messages (accounts.db/current-public-key cofx))
-                    chat-messages (index-messages (get-stored-messages chat-id))
-                    message-ids   (keys chat-messages)]
+              (let [chat-messages         (index-messages (get-stored-messages chat-id))
+                    message-ids           (keys chat-messages)
+                    statuses              (get-stored-user-statuses chat-id message-ids)
+                    unviewed-messages-ids (keep
+                                           (fn [[message-id statuses]]
+                                             (let [{:keys [status]}
+                                                   (get statuses public-key)]
+                                               (when (= (keyword status) :received)
+                                                 message-id)))
+                                           statuses)]
                 (update
                  chats
                  chat-id
                  assoc
 
                  :messages chat-messages
-                 :message-statuses (get-stored-user-statuses chat-id message-ids)
-                 :unviewed-messages (get stored-unviewed-messages chat-id)
+                 :message-statuses statuses
+                 :loaded-unviewed-messages-ids unviewed-messages-ids
                  :referenced-messages (into {}
                                             (map (juxt :message-id identity)
                                                  (get-referenced-messages
@@ -87,8 +94,7 @@
   "Initialize all persisted chats on startup"
   [{:keys [db default-dapps all-stored-chats] :as cofx}]
   (let [chats (reduce (fn [acc {:keys [chat-id] :as chat}]
-                        (assoc acc chat-id
-                               (assoc chat :not-loaded-message-ids #{})))
+                        (assoc acc chat-id chat))
                       {}
                       all-stored-chats)]
     (fx/merge cofx
@@ -132,16 +138,29 @@
                                (get-referenced-messages current-chat-id
                                                         (get-referenced-ids indexed-messages)))
           new-message-ids     (keys indexed-messages)
-          new-statuses        (get-stored-user-statuses current-chat-id new-message-ids)]
+          new-statuses        (get-stored-user-statuses current-chat-id new-message-ids)
+          public-key          (accounts.db/current-public-key cofx)
+          loaded-unviewed-messages (keep
+                                    (fn [[message-id statuses]]
+                                      (let [{:keys [status]}
+                                            (get statuses public-key)]
+                                        (when (= (keyword status) :received)
+                                          message-id)))
+                                    new-statuses)]
       (fx/merge cofx
                 {:db (-> db
                          (update-in [:chats current-chat-id :messages] merge indexed-messages)
                          (update-in [:chats current-chat-id :message-statuses] merge new-statuses)
-                         (update-in [:chats current-chat-id :not-loaded-message-ids]
-                                    #(apply disj % new-message-ids))
                          (update-in [:chats current-chat-id :referenced-messages]
                                     #(into (apply dissoc % new-message-ids) referenced-messages))
                          (assoc-in [:chats current-chat-id :all-loaded?]
                                    (> constants/default-number-of-messages (count new-messages))))}
+                (chat-model/upsert-chat
+                 {:chat-id
+                  current-chat-id
+                  :unviewed-messages-count
+                  (max 0
+                       (- (get-in db [:chats current-chat-id :unviewed-messages-count])
+                          (count loaded-unviewed-messages)))})
                 (group-chat-messages current-chat-id new-messages)
                 (chat-model/mark-messages-seen current-chat-id)))))
