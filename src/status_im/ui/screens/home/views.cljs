@@ -104,11 +104,9 @@
      :component-did-update
      (fn [this [_ old-loading?]]
        (let [[_ loading?] (.. this -props -argv)]
-         (if (and (false? loading?)
-                  (true? old-loading?))
-           (utils/set-timeout
-            #(re-frame/dispatch [:load-chats-messages])
-            100))))}
+         (when (and (false? loading?)
+                    (true? old-loading?))
+           (re-frame/dispatch [:load-chats-messages]))))}
     [react/view styles/container
      [toolbar show-welcome? (not rpc-network?) sync-state latest-block-number]
      (cond show-welcome?
