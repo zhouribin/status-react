@@ -4,7 +4,6 @@
    [re-frame.core :as re-frame]
    [status-im.ui.components.react :as react]
    [status-im.i18n :as i18n]
-   [taoensso.timbre :as log]
    [status-im.ui.components.styles :as components.styles]
    [status-im.ui.components.common.common :as components.common]
    [status-im.ui.components.status-bar.view :as status-bar]
@@ -27,24 +26,10 @@
      [list/item
       nil [list/item-primary-only name]]]))
 
-(defn- render-network-connection [manage-network connection]
-  (let [name (case connection
-               :rpc (i18n/label :t/mainnet-network)
-               :les (i18n/label :t/ropsten-network)
-               :ulc (i18n/label :t/rinkeby-network))]
-    [list/list-item-with-checkbox
-     {:checked?        (= (get-in manage-network [:network-type :value]) connection)
-      :on-value-change #(re-frame/dispatch [:network.ui/input-changed :network-type connection])
-      :plain-checkbox? true}
-     [list/item
-      nil [list/item-primary-only name]]]))
-
 (views/defview edit-network []
   (views/letsubs [manage-network [:get-manage-network]
                   is-valid?      [:manage-network-valid?]]
-    (let [custom? (= (get-in manage-network [:chain :value]) :custom)
-          network-type (get-in manage-network [:network-type :value] :rpc)]
-      (log/debug "igorm -> network-type=" network-type)
+    (let [custom? (= (get-in manage-network [:chain :value]) :custom)]
       [react/view styles/container
        [status-bar/status-bar]
        [react/keyboard-avoiding-view components.styles/flex
@@ -58,27 +43,18 @@
             :default-value  (get-in manage-network [:name :value])
             :on-change-text #(re-frame/dispatch [:network.ui/input-changed :name %])
             :auto-focus     true}]
+          [text-input/text-input-with-label
+           {:label          (i18n/label :t/rpc-url)
+            :placeholder    (i18n/label :t/specify-rpc-url)
+            :container      styles/input-container
+            :default-value  (get-in manage-network [:url :value])
+            :on-change-text #(re-frame/dispatch [:network.ui/input-changed :url (string/lower-case %)])}]
           [react/i18n-text {:key :network-chain}]
           [react/view styles/network-type
            [list/flat-list {:data      [:mainnet :testnet :rinkeby :custom]
                             :key-fn    (fn [_ i] (str i))
                             :separator list/base-separator
                             :render-fn #(render-network-type manage-network %)}]]
-
-          [react/i18n-text {:key :network}]
-          [react/view styles/network-type
-           [list/flat-list {:data      [:rpc :les :ulc]
-                            :key-fn    (fn [_ i] (str i))
-                            :separator list/base-separator
-                            :render-fn #(render-network-connection manage-network %)}]]
-          (when (= network-type :rpc)
-            (log/debug "igorm -> network-type -> rpc!")
-            [text-input/text-input-with-label
-             {:label          (i18n/label :t/rpc-url)
-              :placeholder    (i18n/label :t/specify-rpc-url)
-              :container      styles/input-container
-              :default-value  (get-in manage-network [:url :value])
-              :on-change-text #(re-frame/dispatch [:network.ui/input-changed :url (string/lower-case %)])}])
           (when custom?
             [text-input/text-input-with-label
              {:label          (i18n/label :t/network-id)
