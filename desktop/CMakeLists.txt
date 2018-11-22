@@ -14,6 +14,7 @@ set(REACT_BUILD_STATIC_LIB ON)
 
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9")
 
+set(EXTERNAL_MODULES_DIR ../../../realm-js/realm-js/react-native/desktop;node_modules/react-native-i18n/desktop;node_modules/react-native-config/desktop;node_modules/react-native-fs/desktop;node_modules/react-native-http-bridge/desktop;node_modules/react-native-webview-bridge/desktop;node_modules/react-native-keychain/desktop;node_modules/react-native-securerandom/desktop;modules/react-native-status/desktop;node_modules/google-breakpad;modules/react-native-desktop-linking/desktop;modules/react-native-desktop-notification/desktop;)
 message(STATUS "EXTERNAL_MODULES_DIR: ${EXTERNAL_MODULES_DIR}")
 
 string(REGEX MATCH "BUILD_FOR_BUNDLE" BUILD_FOR_BUNDLE "${CMAKE_CXX_FLAGS}")
@@ -41,9 +42,9 @@ add_subdirectory(reportApp)
 # APPLICATION_MAIN_CPP_PATH contains absolute path to generated template copy of main.cpp for application executable
 get_filename_component(APPLICATION_MAIN_CPP_PATH main.cpp ABSOLUTE)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../node_modules/react-native/React/Layout)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../node_modules/react-native/ReactQt/runtime/src ${CMAKE_CURRENT_BINARY_DIR}/lib)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../node_modules/react-native/ReactQt/application/src ${CMAKE_CURRENT_BINARY_DIR}/bin)
+include_directories(/home/max/work/react-native-desktop/react-native-desktop/React/Layout)
+add_subdirectory(/home/max/work/react-native-desktop/react-native-desktop/ReactQt/runtime/src ${CMAKE_CURRENT_BINARY_DIR}/lib)
+add_subdirectory(/home/max/work/react-native-desktop/react-native-desktop/ReactQt/application/src ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 if (WIN32)
   set(RUN_SCRIPT_FILE_NAME "run-app.bat")
