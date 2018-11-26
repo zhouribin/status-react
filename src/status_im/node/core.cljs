@@ -86,7 +86,7 @@
       (get-base-node-config)
 
       current-fleet
-      (assoc :NoDiscovery   false
+      (assoc :NoDiscovery   true
              :Rendezvous    (not (empty? rendezvous-nodes))
              :ClusterConfig {:Enabled true
                              :Fleet              (name current-fleet-key)
