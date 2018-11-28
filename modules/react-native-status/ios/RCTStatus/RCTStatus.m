@@ -2,7 +2,7 @@
 #import "ReactNativeConfig.h"
 #import "React/RCTBridge.h"
 #import "React/RCTEventDispatcher.h"
-#import <Statusgo/Statusgo.h>
+#import "Statusgo/Status.h"
 
 @interface NSDictionary (BVJSONString)
 -(NSString*) bv_jsonStringWithPrettyPrint:(BOOL) prettyPrint;
@@ -134,8 +134,8 @@ RCT_EXPORT_METHOD(startNode:(NSString *)configString) {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
                    ^(void)
                    {
-                       char *res = StartNode((char *) [resultingConfig UTF8String]);
-                       NSLog(@"StartNode result %@", [NSString stringWithUTF8String: res]);
+                       NSString *res = StatusStartNode(resultingConfig);
+                       NSLog(@"StartNode result %@", res);
                    });
 }
 
@@ -165,8 +165,8 @@ RCT_EXPORT_METHOD(stopNode) {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
                    ^(void)
                    {
-                       char *res = StopNode();
-                       NSLog(@"StopNode result %@", [NSString stringWithUTF8String: res]);
+                       NSString *res = StatusStopNode();
+                       NSLog(@"StopNode result %@", res);
                    });
 }
 
@@ -178,8 +178,8 @@ RCT_EXPORT_METHOD(createAccount:(NSString *)password
 #if DEBUG
     NSLog(@"CreateAccount() method called");
 #endif
-    char * result = CreateAccount((char *) [password UTF8String]);
-    callback(@[[NSString stringWithUTF8String: result]]);
+    NSString *result = StatusCreateAccount(password);
+    callback(result);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -189,8 +189,8 @@ RCT_EXPORT_METHOD(notifyUsers:(NSString *)message
                   payloadJSON:(NSString *)payloadJSON
                   tokensJSON:(NSString *)tokensJSON
                   callback:(RCTResponseSenderBlock)callback) {
-    char * result = NotifyUsers((char *) [message UTF8String], (char *) [payloadJSON UTF8String], (char *) [tokensJSON UTF8String]);
-    callback(@[[NSString stringWithUTF8String: result]]);
+    NSString *result = StatusNotifyUsers(message, payloadJSON, tokensJSON);
+    callback(result);
 #if DEBUG
     NSLog(@"NotifyUsers() method called");
 #endif
@@ -199,8 +199,8 @@ RCT_EXPORT_METHOD(notifyUsers:(NSString *)message
 //////////////////////////////////////////////////////////////////// addPeer
 RCT_EXPORT_METHOD(addPeer:(NSString *)enode
                   callback:(RCTResponseSenderBlock)callback) {
-  char * result = AddPeer((char *) [enode UTF8String]);
-  callback(@[[NSString stringWithUTF8String: result]]);
+  NSString *result = StatusAddPeer(enode);
+  callback(result);
 #if DEBUG
   NSLog(@"AddPeer() method called");
 #endif
@@ -213,8 +213,8 @@ RCT_EXPORT_METHOD(recoverAccount:(NSString *)passphrase
 #if DEBUG
     NSLog(@"RecoverAccount() method called");
 #endif
-    char * result = RecoverAccount((char *) [password UTF8String], (char *) [passphrase UTF8String]);
-    callback(@[[NSString stringWithUTF8String: result]]);
+    NSString *result = StatusRecoverAccount(password, passphrase);
+    callback(result);
 }
 
 //////////////////////////////////////////////////////////////////// login
@@ -224,8 +224,8 @@ RCT_EXPORT_METHOD(login:(NSString *)address
 #if DEBUG
     NSLog(@"Login() method called");
 #endif
-    char * result = Login((char *) [address UTF8String], (char *) [password UTF8String]);
-    callback(@[[NSString stringWithUTF8String: result]]);
+    NSString *result = StatusLogin(address, password);
+    callback(result);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -237,8 +237,8 @@ RCT_EXPORT_METHOD(sendTransaction:(NSString *)txArgsJSON
 #if DEBUG
     NSLog(@"SendTransaction() method called");
 #endif
-    char * result = SendTransaction((char *) [txArgsJSON UTF8String], (char *) [password UTF8String]);
-    callback(@[[NSString stringWithUTF8String: result]]);
+    NSString *result = StatusSendTransaction(txArgsJSON, password);
+    callback(result);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -249,8 +249,8 @@ RCT_EXPORT_METHOD(signMessage:(NSString *)message
 #if DEBUG
     NSLog(@"SignMessage() method called");
 #endif
-    char * result = SignMessage((char *) [message UTF8String]);
-    callback(@[[NSString stringWithUTF8String: result]]);
+    NSString *result = StatusSignMessage(message);
+    callback(result);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -261,8 +261,8 @@ RCT_EXPORT_METHOD(signGroupMembership:(NSString *)content
 #if DEBUG
     NSLog(@"SignGroupMembership() method called");
 #endif
-    char * result = SignGroupMembership((char *) [content UTF8String]);
-    callback(@[[NSString stringWithUTF8String: result]]);
+    NSString *result = StatusSignGroupMembership(content);
+    callback(result);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -273,8 +273,8 @@ RCT_EXPORT_METHOD(extractGroupMembershipSignatures:(NSString *)content
 #if DEBUG
     NSLog(@"ExtractGroupMembershipSignatures() method called");
 #endif
-    char * result = ExtractGroupMembershipSignatures((char *) [content UTF8String]);
-    callback(@[[NSString stringWithUTF8String: result]]);
+    NSString *result = StatusExtractGroupMembershipSignatures(content);
+    callback(result);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -285,8 +285,8 @@ RCT_EXPORT_METHOD(enableInstallation:(NSString *)content
 #if DEBUG
     NSLog(@"EnableInstallation() method called");
 #endif
-    char * result = EnableInstallation((char *) [content UTF8String]);
-    callback(@[[NSString stringWithUTF8String: result]]);
+    NSString *result = StatusEnableInstallation(content);
+    callback(result);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -297,8 +297,8 @@ RCT_EXPORT_METHOD(disableInstallation:(NSString *)content
 #if DEBUG
     NSLog(@"DisableInstallation() method called");
 #endif
-    char * result = DisableInstallation((char *) [content UTF8String]);
-    callback(@[[NSString stringWithUTF8String: result]]);
+    NSString *result = StatusDisableInstallation(content);
+    callback(result);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -345,9 +345,9 @@ RCT_EXPORT_METHOD(clearStorageAPIs) {
 RCT_EXPORT_METHOD(callRPC:(NSString *)payload
                   callback:(RCTResponseSenderBlock)callback) {
     dispatch_async( dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        char * result = CallRPC((char *) [payload UTF8String]);
+        NSString *result = StatusCallRPC(payload);
         dispatch_async( dispatch_get_main_queue(), ^{
-            callback(@[[NSString stringWithUTF8String: result]]);
+            callback(result);
         });
     });
 }
@@ -355,9 +355,9 @@ RCT_EXPORT_METHOD(callRPC:(NSString *)payload
 RCT_EXPORT_METHOD(callPrivateRPC:(NSString *)payload
                   callback:(RCTResponseSenderBlock)callback) {
     dispatch_async( dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        char * result = CallPrivateRPC((char *) [payload UTF8String]);
+        NSString *result = StatusCallPrivateRPC(payload);
         dispatch_async( dispatch_get_main_queue(), ^{
-            callback(@[[NSString stringWithUTF8String: result]]);
+            callback(result);
         });
     });
 }
@@ -372,14 +372,14 @@ RCT_EXPORT_METHOD(connectionChange:(NSString *)type
 #if DEBUG
     NSLog(@"ConnectionChange() method called");
 #endif
-    ConnectionChange((char *) [type UTF8String], isExpensive? 1 : 0);
+    StatusConnectionChange(type, isExpensive ? 1 : 0);
 }
 
 RCT_EXPORT_METHOD(appStateChange:(NSString *)type) {
 #if DEBUG
     NSLog(@"AppStateChange() method called");
 #endif
-    AppStateChange((char *) [type UTF8String]);
+    StatusAppStateChange(type);
 }
 
 RCT_EXPORT_METHOD(getDeviceUUID:(RCTResponseSenderBlock)callback) {
