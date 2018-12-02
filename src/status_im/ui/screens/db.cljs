@@ -27,6 +27,8 @@
              :qr-codes                           {}
              :group/selected-contacts            #{}
              :chats                              {}
+             :messages  {}
+             :current-message-id                 nil
              :current-chat-id                    nil
              :selected-participants              #{}
              :discoveries                        {}
@@ -283,6 +285,8 @@
                                    :qr/qr-codes
                                    :qr/qr-modal
                                    :qr/current-qr-context
+                                   ::messages
+                                   ::current-message-id
                                    :chat/chats
                                    :chat/current-chat-id
                                    :chat/chat-id

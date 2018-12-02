@@ -18,7 +18,13 @@
                         :onPress #(re-frame/dispatch [:navigate-to :desktop/new-group-chat])}
                        {:shortcut "Ctrl+P"
                         :onPress #(re-frame/dispatch [:navigate-to :desktop/new-public-chat])}
-
+                       {:shortcut "Ctrl+Right"
+                        :onPress #(re-frame/dispatch [:messages/next-message])}
+                       {:shortcut "Ctrl+Left"
+                        :onPress #(re-frame/dispatch [:messages/previous-message])}
+                       {:shortcut "Ctrl+Up"
+                        :onPress #(re-frame/dispatch [:messages/parent-message])}
+                       {:shortcut "Ctrl+Down"
+                        :onPress #(re-frame/dispatch [:messages/child-message])}
                        {:shortcut "Ctrl+F"
                         :onPress #(utils/show-popup "" "Ctrl+F")}))))
-

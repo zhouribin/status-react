@@ -42,7 +42,8 @@
 
 (defn- prepare-message
   [{:keys [content content-type] :as message} chat-id current-chat?]
-  (let [emoji? (message-content/emoji-only-content? content)]
+  (let [emoji? (message-content/emoji-only-content? content)
+        parent? (:response-to-v2 content)]
     ;; TODO janherich: enable the animations again once we can do them more efficiently
     (cond-> (assoc message :appearing? true)
       (not current-chat?)
@@ -50,6 +51,9 @@
 
       emoji?
       (assoc :content-type constants/content-type-emoji)
+
+      parent?
+      (assoc :parent parent?)
 
       (and (= constants/content-type-text content-type) (not emoji?))
       (update :content message-content/enrich-content))))
@@ -108,6 +112,13 @@
      :body        (str body-first-line (:text content))
      :prioritary? (not (chat-model/multi-user-chat? cofx chat-id))}))
 
+(defn update-parent
+  [db {:keys [parent message-id]}]
+  (if (and parent
+           (get-in db [:messages parent]))
+    (update-in db [:messages parent :children] conj message-id)
+    db))
+
 (fx/defn add-message
   [{:keys [db] :as cofx} batch? {:keys [chat-id message-id clock-value timestamp content from] :as message} current-chat?]
   (let [current-public-key (accounts.db/current-public-key cofx)
@@ -123,6 +134,7 @@
     (fx/merge cofx
               {:db            (cond->
                                (-> db
+                                   (assoc-in [:messages message-id] prepared-message)
                                    (update-in [:chats chat-id :messages] assoc message-id prepared-message)
                                    ;; this will increase last-clock-value twice when sending our own messages
                                    (update-in [:chats chat-id :last-clock-value] (partial utils.clocks/receive clock-value)))

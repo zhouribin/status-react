@@ -119,24 +119,21 @@
          (assoc-in [:chats current-chat-id :input-text]
                    (str input-text chat.constants/spacing-char)))})
 
-(defn plain-text-message-fx
+(fx/defn plain-text-message-fx
   "no command detected, when not empty, proceed by sending text message without command processing"
-  [input-text current-chat-id {:keys [db] :as cofx}]
-  (when-not (string/blank? input-text)
+  [{:keys [db] :as cofx} message-text current-chat-id response-id]
+  (when-not (string/blank? message-text)
     (let [{:keys [message-id old-message-id]}
-          (get-in db [:chats current-chat-id :metadata :responding-to-message])]
+          (get-in db [:messages response-id])]
       (fx/merge cofx
-                {:db (assoc-in db [:chats current-chat-id :metadata :responding-to-message] nil)}
                 (chat.message/send-message {:chat-id      current-chat-id
                                             :content-type constants/content-type-text
                                             :content      (cond-> {:chat-id current-chat-id
-                                                                   :text    input-text}
+                                                                   :text    message-text}
                                                             message-id
                                                             (assoc :response-to old-message-id
                                                                    :response-to-v2 message-id))})
-                (commands.input/set-command-reference nil)
-                (set-chat-input-text nil)
-                (process-cooldown)))))
+                (commands.input/set-command-reference nil)))))
 
 (defn send-plain-text-message-fx
   "no command detected, when not empty, proceed by sending text message without command processing"
@@ -149,18 +146,18 @@
 
 (fx/defn send-current-message
   "Sends message from current chat input"
-  [{{:keys [current-chat-id id->command access-scope->command-id] :as db} :db :as cofx}]
-  (let [{:keys [input-text custom-params]} (get-in db [:chats current-chat-id])
+  [{{:keys [id->command access-scope->command-id] :as db} :db :as cofx} message-text current-chat-id response-id]
+  (let [{:keys [custom-params]} (get-in db [:chats current-chat-id])
         command      (commands.input/selected-chat-command
-                      input-text nil (commands/chat-commands id->command
-                                                             access-scope->command-id
-                                                             (get-in db [:chats current-chat-id])))]
+                      message-text nil (commands/chat-commands id->command
+                                                               access-scope->command-id
+                                                               (get-in db [:chats current-chat-id])))]
     (if command
       ;; Returns true if current input contains command
       (if (= :complete (:command-completion command))
-        (command-complete-fx cofx input-text command custom-params)
-        (command-not-complete-fx input-text current-chat-id cofx))
-      (plain-text-message-fx input-text current-chat-id cofx))))
+        (command-complete-fx cofx message-text command custom-params)
+        (command-not-complete-fx message-text current-chat-id cofx))
+      (plain-text-message-fx cofx message-text current-chat-id response-id))))
 
 ;; effects
 

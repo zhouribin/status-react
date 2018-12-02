@@ -11,6 +11,45 @@
       (update :message-type keyword)
       (update :content edn/read-string)))
 
+(defn get-by-message-id
+  [message-id]
+  (if-let [js-message (.objectForPrimaryKey @core/account-realm "message" message-id)]
+    (-> js-message
+        (core/realm-obj->clj :message)
+        transform-message)))
+
+(defn get-parent-tree [messages message-id parent-id]
+  (if (get messages parent-id)
+    (update-in messages [parent-id :children] conj message-id)
+    (if-let [message (get-by-message-id parent-id)]
+      (cond-> (assoc messages parent-id
+                     (assoc message :children [message-id]))
+        (:parent message)
+        (get-parent-tree messages parent-id (:parent message)))
+      messages)))
+
+(defn get-parents [messages]
+  (reduce (fn [acc [message-id {:keys [parent]}]]
+            (if parent
+              (get-parent-tree acc message-id parent)
+              acc))
+          messages
+          messages))
+
+(defn- get-messages
+  ([]
+   (get-messages 0))
+  ([from]
+   (let [messages (-> (core/get-by-field @core/account-realm :message :seen false)
+                      (core/sorted :timestamp :desc)
+                      #_(core/page from (+ from constants/default-number-of-messages))
+                      (core/all-clj :message))]
+     (get-parents
+      (reduce (fn [acc {:keys [message-id] :as message}]
+                (assoc acc message-id (transform-message message)))
+              {}
+              messages)))))
+
 (defn- get-by-chat-id
   ([chat-id]
    (get-by-chat-id chat-id 0))
@@ -49,12 +88,22 @@
   {:to nil})
 
 (re-frame/reg-cofx
- :data-store/get-messages
+ :data-store/smb-get-messages
  (fn [cofx _]
-   (assoc cofx :get-stored-messages get-by-chat-id)))
+   (assoc cofx :smb-get-stored-messages get-messages)))
+
+(re-frame/reg-cofx
+ :data-store/get-message-by-message-id
+ (fn [cofx _]
+   (assoc cofx :get-stored-message-by-message-id get-by-message-id)))
 
 (defn- sha3 [s]
   (.sha3 dependencies/Web3.prototype s))
+
+(re-frame/reg-cofx
+ :data-store/get-messages
+ (fn [cofx _]
+   (assoc cofx :get-stored-messages get-by-chat-id)))
 
 (re-frame/reg-cofx
  :data-store/get-referenced-messages
@@ -73,11 +122,10 @@
   "Returns tx function for saving message"
   [{:keys [message-id from] :as message}]
   (fn [realm]
+    (println message)
     (core/create realm
                  :message
-                 (prepare-message (merge default-values
-                                         message
-                                         {:from (or from "anonymous")}))
+                 (prepare-message message)
                  true)))
 
 (defn delete-message-tx

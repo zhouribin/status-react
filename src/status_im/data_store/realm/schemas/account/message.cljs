@@ -62,3 +62,38 @@
   (-> v8
       (assoc-in [:properties :raw-payload-hash]
                 {:type :string})))
+
+(def v10 {:name       :message
+          :primaryKey :message-id
+          :properties {:message-id       :string
+                       :old-message-id   {:type    :string
+                                          :indexed true}
+                       :raw-payload-hash :string
+                       :from             {:type :string
+                                          :indexed true}
+                       :to               {:type     :string
+                                          :optional true}
+                       :parent           {:type :string
+                                          :indexed true
+                                          :optional true}
+                       :seen             {:type :bool
+                                          :indexed true
+                                          :default false}
+                       :content          :string ; TODO make it ArrayBuffer
+                       :content-type     :string
+                       :username         {:type     :string
+                                          :optional true}
+                       :timestamp        :int
+                       :chat-id          {:type    :string
+                                          :indexed true}
+                       :outgoing         :bool
+                       :retry-count      {:type    :int
+                                          :default 0}
+                       :message-type     {:type     :string
+                                          :optional true}
+                       :message-status   {:type     :string
+                                          :optional true}
+                       :clock-value      {:type    :int
+                                          :default 0}
+                       :show?            {:type    :bool
+                                          :default true}}})

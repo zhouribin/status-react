@@ -2,6 +2,7 @@
   (:require [re-frame.core :as re-frame]
             [status-im.chat.models.loading :as chat-loading]
             [status-im.accounts.core :as accounts.core]
+            [status-im.messages.core :as messages.core]
             [status-im.accounts.login.core :as accounts.login]
             [status-im.accounts.update.core :as accounts.update]
             [status-im.constants :as constants]
@@ -28,6 +29,7 @@
             [status-im.utils.universal-links.core :as universal-links]
             [status-im.utils.utils :as utils]
             [taoensso.timbre :as log]
+            [status-im.chat.models.loading :as chat-loading]
             [status-im.utils.fx :as fx]
             [status-im.chat.models :as chat-model]
             [status-im.accounts.db :as accounts.db]))
@@ -242,7 +244,10 @@
                                              [:web3/fetch-node-version-callback %])]
              :notifications/get-fcm-token nil}
             (initialize-account-db address)
+            (protocol/initialize-protocol address)
             (contact/load-contacts)
+            (chat-loading/initialize-chats)
+            (messages.core/load-messages)
             (pairing/load-installations)
             #(when (dev-mode? %)
                (models.dev-server/start))

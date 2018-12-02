@@ -88,8 +88,6 @@
   [message-view message
    (let [collapsible? (and (:should-collapse? content) group-chat)]
      [react/view
-      (when (:response-to content)
-        [quoted-message (:response-to content) outgoing current-public-key])
       [react/text (cond-> {:style           (style/text-message collapsible? outgoing)}
                     (and collapsible? (not expanded?))
                     (assoc :number-of-lines constants/lines-collapse-threshold))
@@ -206,7 +204,7 @@
         [vector-icons/icon :icons/warning {:color colors/red}]]])))
 
 (defn message-delivery-status
-  [{:keys [chat-id message-id current-public-key user-statuses content last-outgoing? outgoing message-type] :as message}]
+  [{:keys [chat-id message-id current-public-key user-statuses content outgoing message-type] :as message}]
   (let [outgoing-status (or (get-in user-statuses [current-public-key :status]) :not-sent)
         delivery-status (get-in user-statuses [chat-id :status])
         status          (or delivery-status outgoing-status)]
@@ -217,11 +215,10 @@
         (if (and (not outgoing)
                  (:command content))
           [command-status content]
-          (when last-outgoing?
-            (if (= message-type :group-user-message)
-              [group-message-delivery-status message]
-              (if outgoing
-                [text-status status]))))))))
+          (if (= message-type :group-user-message)
+            [group-message-delivery-status message]
+            (if outgoing
+              [text-status status])))))))
 
 (defview message-author-name [from message-username]
   (letsubs [username [:contacts/contact-name-by-identity from]]
@@ -229,25 +226,19 @@
      (chat.utils/format-author from (or username message-username))]))
 
 (defn message-body
-  [{:keys [last-in-group?
-           display-photo?
-           display-username?
-           message-type
+  [{:keys [message-type
            from
            outgoing
            modal?
            username] :as message} content]
   [react/view (style/group-message-wrapper message)
    [react/view (style/message-body message)
-    (when display-photo?
-      [react/view style/message-author
-       (when last-in-group?
-         [react/touchable-highlight {:on-press #(when-not modal? (re-frame/dispatch [:chat.ui/show-profile from]))}
-          [react/view
-           [photos/member-photo from]]])])
+    [react/view style/message-author
+     [react/touchable-highlight {:on-press #(when-not modal? (re-frame/dispatch [:chat.ui/show-profile from]))}
+      [react/view
+       [photos/member-photo from]]]]
     [react/view (style/group-message-view outgoing message-type)
-     (when display-username?
-       [message-author-name from username])
+     [message-author-name from username]
      [react/view {:style (style/timestamp-content-wrapper message)}
       content]]]
    [react/view (style/delivery-status outgoing)

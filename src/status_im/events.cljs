@@ -45,7 +45,8 @@
             [taoensso.timbre :as log]
             [status-im.utils.datetime :as time]
             [status-im.chat.commands.core :as commands]
-            [status-im.chat.models.loading :as chat-loading]))
+            [status-im.chat.models.loading :as chat-loading]
+            [status-im.messages.core :as messages.core]))
 
 ;; init module
 
@@ -98,20 +99,19 @@
  (fn [cofx]
    (chat-loading/load-chats-messages cofx)))
 
-(handlers/register-handler-fx
- :init-chats
- [(re-frame/inject-cofx :web3/get-web3)
-  (re-frame/inject-cofx :get-default-dapps)
-  (re-frame/inject-cofx :data-store/all-chats)
-  (re-frame/inject-cofx :data-store/get-all-mailservers)
-  (re-frame/inject-cofx :data-store/transport)
-  (re-frame/inject-cofx :data-store/mailserver-topics)]
- (fn [{:keys [db] :as cofx} [_ address]]
-   (fx/merge cofx
-             {:db (assoc db :chats/loading? false)}
-             (chat-loading/initialize-chats)
-             (protocol/initialize-protocol address)
-             (chat-loading/initialize-pending-messages))))
+#_(handlers/register-handler-fx
+   :init-chats
+   [(re-frame/inject-cofx :web3/get-web3)
+    (re-frame/inject-cofx :get-default-dapps)
+    (re-frame/inject-cofx :data-store/all-chats)
+    (re-frame/inject-cofx :data-store/get-all-mailservers)
+    (re-frame/inject-cofx :data-store/transport)
+    (re-frame/inject-cofx :data-store/mailserver-topics)]
+   (fn [{:keys [db] :as cofx} [_ address]]
+     (fx/merge cofx
+               {:db (assoc db :chats/loading? false)}
+               (chat-loading/initialize-chats)
+               (chat-loading/initialize-pending-messages))))
 
 (handlers/register-handler-fx
  :init.callback/account-change-success
@@ -119,7 +119,13 @@
   (re-frame/inject-cofx :data-store/get-all-contacts)
   (re-frame/inject-cofx :data-store/get-all-installations)
   (re-frame/inject-cofx :data-store/all-browsers)
-  (re-frame/inject-cofx :data-store/all-dapp-permissions)]
+  (re-frame/inject-cofx :data-store/all-dapp-permissions)
+  (re-frame/inject-cofx :data-store/get-all-mailservers)
+  (re-frame/inject-cofx :data-store/transport)
+  (re-frame/inject-cofx :data-store/mailserver-topics)
+  (re-frame/inject-cofx :get-default-dapps)
+  (re-frame/inject-cofx :data-store/all-chats)
+  (re-frame/inject-cofx :data-store/smb-get-messages)]
  (fn [cofx [_ address]]
    (init/initialize-account cofx address)))
 
@@ -697,8 +703,8 @@
 
 (handlers/register-handler-fx
  :chat.ui/send-current-message
- (fn [cofx _]
-   (chat.input/send-current-message cofx)))
+ (fn [{{:keys [current-chat-id]} :db :as cofx} [_ message-text current-chat-id response-id]]
+   (chat.input/send-current-message cofx message-text current-chat-id response-id)))
 
 (handlers/register-handler-fx
  :chat.ui/set-command-parameter
@@ -716,8 +722,8 @@
 
 (handlers/register-handler-fx
  :chat/send-plain-text-message
- (fn [{{:keys [current-chat-id]} :db :as cofx} [_ message-text]]
-   (chat.input/send-plain-text-message-fx cofx message-text current-chat-id)))
+ (fn [{{:keys [current-chat-id]} :db :as cofx} [_ message-text current-chat-id response-id]]
+   (chat.input/send-current-message cofx message-text current-chat-id response-id)))
 
 (handlers/register-handler-fx
  :chat/disable-cooldown
@@ -733,6 +739,35 @@
  :message/update-message-status
  (fn [cofx [_ chat-id message-id status]]
    (chat.message/update-message-status cofx chat-id message-id status)))
+
+(handlers/register-handler-fx
+ :messages/set-current-message-id
+ (fn [{:keys [db]} [_ message-id]]
+   {:db (assoc db :current-message-id message-id)}))
+
+(handlers/register-handler-fx
+ :messages/next-message
+ [(re-frame/inject-cofx :data-store/smb-get-messages)]
+ (fn [cofx _]
+   (messages.core/change-current-message cofx :next)))
+
+(handlers/register-handler-fx
+ :messages/previous-message
+ [(re-frame/inject-cofx :data-store/smb-get-messages)]
+ (fn [cofx _]
+   (messages.core/change-current-message cofx :previous)))
+
+(handlers/register-handler-fx
+ :messages/parent-message
+ [(re-frame/inject-cofx :data-store/smb-get-messages)]
+ (fn [cofx _]
+   (messages.core/change-current-message cofx :parent)))
+
+(handlers/register-handler-fx
+ :messages/child-message
+ [(re-frame/inject-cofx :data-store/smb-get-messages)]
+ (fn [cofx _]
+   (messages.core/change-current-message cofx :child)))
 
 ;; signal module
 
