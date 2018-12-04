@@ -819,6 +819,12 @@
    {:hardwallet/get-application-info nil}))
 
 (handlers/register-handler-fx
+ :hardwallet.callback/on-retrieve-pairing-success
+ (fn [{:keys [db]} [_ pairing]]
+   (when-not (empty? pairing)
+     {:db (assoc-in db [:hardwallet :secrets :pairing] pairing)})))
+
+(handlers/register-handler-fx
  :hardwallet.callback/on-register-card-events
  (fn [cofx [_ listeners]]
    (hardwallet/on-register-card-events cofx listeners)))
@@ -895,6 +901,16 @@
  :hardwallet.callback/on-generate-and-load-key-error
  (fn [cofx [_ error]]
    (hardwallet/on-generate-and-load-key-error cofx error)))
+
+(handlers/register-handler-fx
+ :hardwallet.callback/on-get-keys-success
+ (fn [cofx [_ data]]
+   (hardwallet/on-get-keys-success cofx data)))
+
+(handlers/register-handler-fx
+ :hardwallet.callback/on-get-keys-error
+ (fn [cofx [_ error]]
+   (hardwallet/on-get-keys-error cofx error)))
 
 (handlers/register-handler-fx
  :hardwallet.ui/status-hardwallet-option-pressed

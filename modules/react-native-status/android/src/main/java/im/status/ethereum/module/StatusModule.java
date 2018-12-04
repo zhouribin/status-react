@@ -394,22 +394,42 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
     @ReactMethod
     public void verify(final String address, final String password, final Callback callback) {
         Log.d(TAG, "verify");
+            if (!checkAvailability()) {
+                callback.invoke(false);
+                return;
+            }
+
+            Activity currentActivity = getCurrentActivity();
+
+            final String absRootDirPath = currentActivity.getApplicationInfo().dataDir;
+            final String newKeystoreDir = pathCombine(absRootDirPath, "keystore");
+
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    String result = Statusgo.VerifyAccountPassword(newKeystoreDir, address, password);
+
+                    callback.invoke(result);
+                        }
+                    };
+
+                    StatusThreadPoolExecutor.getInstance().execute(r);
+                }
+
+    @ReactMethod
+    public void loginWithKeycard(final String walletAddress, final String whisperPrivateKey, final Callback callback) {
+        Log.d(TAG, "loginWithKeycard");
         if (!checkAvailability()) {
             callback.invoke(false);
             return;
         }
 
-        Activity currentActivity = getCurrentActivity();
-
-        final String absRootDirPath = currentActivity.getApplicationInfo().dataDir;
-        final String newKeystoreDir = pathCombine(absRootDirPath, "keystore");
-
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                String result = Statusgo.VerifyAccountPassword(newKeystoreDir, address, password);
+                  String result = Statusgo.LoginWithKeycard(walletAddress, whisperPrivateKey);
 
-                callback.invoke(result);
+                  callback.invoke(result);
             }
         };
 
@@ -687,7 +707,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Log.d(TAG, "AppStateChange: " + type);
         Statusgo.AppStateChange(type);
     }
-    
+
     private static String uniqueID = null;
     private static final String PREF_UNIQUE_ID = "PREF_UNIQUE_ID";
 

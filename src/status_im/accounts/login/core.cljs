@@ -46,8 +46,13 @@
 
 ;;;; Handlers
 (fx/defn login [cofx]
-  (let [{:keys [address password save-password?]} (accounts.db/credentials cofx)]
-    {:accounts.login/login [address password save-password?]}))
+  (if (get-in cofx [:db :hardwallet :whisper-private-key])
+    {:hardwallet/login-with-keycard (-> cofx
+                                        (get-in [:db :hardwallet])
+                                        (select-keys [:whisper-private-key :wallet-address])
+                                        (assoc :on-result #(re-frame/dispatch [:accounts.login.callback/login-success %])))}
+    (let [{:keys [address password save-password?]} (accounts.db/credentials cofx)]
+      {:accounts.login/login [address password save-password?]})))
 
 (fx/defn initialize-wallet [cofx]
   (fx/merge cofx

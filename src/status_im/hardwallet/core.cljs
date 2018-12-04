@@ -56,8 +56,7 @@
             (navigation/navigate-to-cofx :hardwallet-connect nil)))
 
 (fx/defn success-button-pressed [cofx]
-  ;; login not implemented yet
-)
+  (navigation/navigate-to-cofx cofx :home nil))
 
 (fx/defn error-button-pressed [{:keys [db] :as cofx}]
   (let [return-to-step (get-in db [:hardwallet :return-to-step] :begin)]
@@ -126,19 +125,28 @@
   (let [{:keys [pairing]} (get-in cofx [:db :hardwallet :secrets])]
     {:hardwallet/generate-mnemonic {:pairing pairing}}))
 
+(defn- try-login-with-keycard [{:keys [db]}]
+  (when (= (:view-id db) :accounts)
+    (let [{:keys [pairing pin]} (get-in db [:hardwallet :secrets])]
+      (when (and pairing pin)
+        {:hardwallet/get-keys {:pairing pairing
+                               :pin     pin}}))))
+
 (fx/defn on-card-connected
   [{:keys [db] :as cofx} data]
   (log/debug "[hardwallet] card connected " data)
   (let [return-to-step (get-in db [:hardwallet :return-to-step])
         setup-running? (get-in db [:hardwallet :setup-step])]
-    (fx/merge cofx
-              {:db                              (cond-> db
-                                                  return-to-step (assoc-in [:hardwallet :setup-step] return-to-step)
-                                                  true (assoc-in [:hardwallet :card-connected?] true)
-                                                  true (assoc-in [:hardwallet :return-to-step] nil))
-               :hardwallet/get-application-info nil}
-              (when setup-running?
-                (navigation/navigate-to-cofx :hardwallet-setup nil)))))
+    (if (= (:view-id db) :accounts)
+      (try-login-with-keycard cofx)
+      (fx/merge cofx
+                {:db                              (cond-> db
+                                                    return-to-step (assoc-in [:hardwallet :setup-step] return-to-step)
+                                                    true (assoc-in [:hardwallet :card-connected?] true)
+                                                    true (assoc-in [:hardwallet :return-to-step] nil))
+                 :hardwallet/get-application-info nil}
+                (when setup-running?
+                  (navigation/navigate-to-cofx :hardwallet-setup nil))))))
 
 (fx/defn on-card-disconnected
   [{:keys [db] :as cofx} _]
@@ -184,9 +192,10 @@
 
 (fx/defn on-pairing-success
   [{:keys [db]} pairing]
-  {:db (-> db
-           (assoc-in [:hardwallet :setup-step] :card-ready)
-           (assoc-in [:hardwallet :secrets :pairing] pairing))})
+  {:hardwallet/persist-pairing pairing
+   :db                         (-> db
+                                   (assoc-in [:hardwallet :setup-step] :card-ready)
+                                   (assoc-in [:hardwallet :secrets :pairing] pairing))})
 
 (fx/defn on-pairing-error
   [{:keys [db] :as cofx} {:keys [error code]}]
@@ -292,3 +301,29 @@
                      (assoc-in [:hardwallet :return-to-step] :recovery-phrase)
                      (assoc-in [:hardwallet :setup-error] error))}
             (process-error code)))
+
+(fx/defn on-get-keys-success
+  [{:keys [db] :as cofx} data]
+  (let [{:keys [whisper-public-key
+                whisper-private-key
+                wallet-address
+                encryption-public-key]} (js->clj data :keywordize-keys true)
+        whisper-public-key' (str "0x" whisper-public-key)
+        {:keys [photo-path name]} (get-in db [:accounts/accounts wallet-address])
+        password encryption-public-key]
+    (fx/merge cofx
+              {:db (-> db
+                       (assoc-in [:hardwallet :whisper-public-key] whisper-public-key')
+                       (assoc-in [:hardwallet :whisper-private-key] whisper-private-key)
+                       (assoc-in [:hardwallet :wallet-address] wallet-address)
+                       (assoc-in [:hardwallet :encryption-public-key] encryption-public-key)
+                       (update :accounts/login assoc
+                               :password password
+                               :address wallet-address
+                               :photo-path photo-path
+                               :name name))}
+              (accounts.login/user-login))))
+
+(fx/defn on-get-keys-error
+  [{:keys [db]} error]
+  (log/debug "[hardwallet] get keys error: " error))

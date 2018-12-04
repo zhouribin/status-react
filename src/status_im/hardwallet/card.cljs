@@ -75,6 +75,7 @@
         (pair password)
         (then #(re-frame/dispatch [:hardwallet.callback/on-pairing-success %]))
         (catch #(re-frame/dispatch [:hardwallet.callback/on-pairing-error (error-object->map %)])))))
+
 (defn generate-mnemonic
   [{:keys [pairing]}]
   (when pairing
@@ -90,3 +91,10 @@
         (generateAndLoadKey mnemonic pairing pin)
         (then #(re-frame/dispatch [:hardwallet.callback/on-generate-and-load-key-success %]))
         (catch #(re-frame/dispatch [:hardwallet.callback/on-generate-and-load-key-error (error-object->map %)])))))
+
+(defn get-keys
+  [{:keys [pairing pin]}]
+  (.. keycard
+      (getKeys pairing pin)
+      (then #(re-frame/dispatch [:hardwallet.callback/on-get-keys-success %]))
+      (catch #(re-frame/dispatch [:hardwallet.callback/on-get-keys-error (error-object->map %)]))))

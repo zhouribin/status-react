@@ -79,23 +79,24 @@
 
 (fx/defn initialize-app-db
   "Initialize db to initial state"
-  [{{:keys [status-module-initialized? view-id hardwallet
-            initial-props
-            network-status network peers-count peers-summary device-UUID]
+  [{{:keys      [status-module-initialized? view-id hardwallet
+                 initial-props
+                 network-status network peers-count peers-summary device-UUID]
      :node/keys [status]
      :or        {network (get app-db :network)}} :db}]
-  {:db (assoc app-db
-              :contacts/contacts {}
-              :initial-props initial-props
-              :network-status network-status
-              :peers-count (or peers-count 0)
-              :peers-summary (or peers-summary [])
-              :status-module-initialized? (or platform/ios? js/goog.DEBUG status-module-initialized?)
-              :node/status status
-              :network network
-              :hardwallet hardwallet
-              :device-UUID device-UUID
-              :view-id view-id)})
+  {:db                          (assoc app-db
+                                       :contacts/contacts {}
+                                       :initial-props initial-props
+                                       :network-status network-status
+                                       :peers-count (or peers-count 0)
+                                       :peers-summary (or peers-summary [])
+                                       :status-module-initialized? (or platform/ios? js/goog.DEBUG status-module-initialized?)
+                                       :node/status status
+                                       :network network
+                                       :hardwallet hardwallet
+                                       :device-UUID device-UUID
+                                       :view-id view-id)
+   :hardwallet/retrieve-pairing nil})
 
 (fx/defn initialize-app
   [cofx encryption-key]

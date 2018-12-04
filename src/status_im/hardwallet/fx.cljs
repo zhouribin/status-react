@@ -1,6 +1,7 @@
 (ns status-im.hardwallet.fx
   (:require [re-frame.core :as re-frame]
             [status-im.hardwallet.card :as card]
+            [status-im.native-module.core :as statusgo]
             [status-im.react-native.js-dependencies :as js-dependencies]))
 
 (re-frame/reg-fx
@@ -46,3 +47,26 @@
 (re-frame/reg-fx
  :hardwallet/generate-and-load-key
  card/generate-and-load-key)
+
+(re-frame/reg-fx
+ :hardwallet/get-keys
+ card/get-keys)
+
+(re-frame/reg-fx
+ :hardwallet/persist-pairing
+ (fn [pairing]
+   (.. js-dependencies/react-native
+       -AsyncStorage
+       (setItem "status-keycard-pairing" pairing))))
+
+(re-frame/reg-fx
+ :hardwallet/retrieve-pairing
+ (fn []
+   (.. js-dependencies/react-native
+       -AsyncStorage
+       (getItem "status-keycard-pairing")
+       (then #(re-frame/dispatch [:hardwallet.callback/on-retrieve-pairing-success %])))))
+
+(re-frame/reg-fx
+ :hardwallet/login-with-keycard
+ statusgo/login-with-keycard)
