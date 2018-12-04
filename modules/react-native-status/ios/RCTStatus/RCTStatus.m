@@ -2,7 +2,7 @@
 #import "ReactNativeConfig.h"
 #import "React/RCTBridge.h"
 #import "React/RCTEventDispatcher.h"
-#import "Statusgo/Status.h"
+#import "Statusgo/Statusgo.h"
 
 @interface NSDictionary (BVJSONString)
 -(NSString*) bv_jsonStringWithPrettyPrint:(BOOL) prettyPrint;
@@ -134,7 +134,7 @@ RCT_EXPORT_METHOD(startNode:(NSString *)configString) {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
                    ^(void)
                    {
-                       NSString *res = StatusStartNode(resultingConfig);
+                       NSString *res = StatusgoStartNode(resultingConfig);
                        NSLog(@"StartNode result %@", res);
                    });
 }
@@ -165,7 +165,7 @@ RCT_EXPORT_METHOD(stopNode) {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
                    ^(void)
                    {
-                       NSString *res = StatusStopNode();
+                       NSString *res = StatusgoStopNode();
                        NSLog(@"StopNode result %@", res);
                    });
 }
@@ -178,7 +178,7 @@ RCT_EXPORT_METHOD(createAccount:(NSString *)password
 #if DEBUG
     NSLog(@"CreateAccount() method called");
 #endif
-    NSString *result = StatusCreateAccount(password);
+    NSString *result = StatusgoCreateAccount(password);
     callback(result);
 }
 
@@ -189,7 +189,7 @@ RCT_EXPORT_METHOD(notifyUsers:(NSString *)message
                   payloadJSON:(NSString *)payloadJSON
                   tokensJSON:(NSString *)tokensJSON
                   callback:(RCTResponseSenderBlock)callback) {
-    NSString *result = StatusNotifyUsers(message, payloadJSON, tokensJSON);
+    NSString *result = StatusgoNotifyUsers(message, payloadJSON, tokensJSON);
     callback(result);
 #if DEBUG
     NSLog(@"NotifyUsers() method called");
@@ -199,7 +199,7 @@ RCT_EXPORT_METHOD(notifyUsers:(NSString *)message
 //////////////////////////////////////////////////////////////////// addPeer
 RCT_EXPORT_METHOD(addPeer:(NSString *)enode
                   callback:(RCTResponseSenderBlock)callback) {
-  NSString *result = StatusAddPeer(enode);
+  NSString *result = StatusgoAddPeer(enode);
   callback(result);
 #if DEBUG
   NSLog(@"AddPeer() method called");
@@ -213,7 +213,7 @@ RCT_EXPORT_METHOD(recoverAccount:(NSString *)passphrase
 #if DEBUG
     NSLog(@"RecoverAccount() method called");
 #endif
-    NSString *result = StatusRecoverAccount(password, passphrase);
+    NSString *result = StatusgoRecoverAccount(password, passphrase);
     callback(result);
 }
 
@@ -224,7 +224,7 @@ RCT_EXPORT_METHOD(login:(NSString *)address
 #if DEBUG
     NSLog(@"Login() method called");
 #endif
-    NSString *result = StatusLogin(address, password);
+    NSString *result = StatusgoLogin(address, password);
     callback(result);
 }
 
@@ -237,7 +237,7 @@ RCT_EXPORT_METHOD(sendTransaction:(NSString *)txArgsJSON
 #if DEBUG
     NSLog(@"SendTransaction() method called");
 #endif
-    NSString *result = StatusSendTransaction(txArgsJSON, password);
+    NSString *result = StatusgoSendTransaction(txArgsJSON, password);
     callback(result);
 }
 
@@ -249,7 +249,7 @@ RCT_EXPORT_METHOD(signMessage:(NSString *)message
 #if DEBUG
     NSLog(@"SignMessage() method called");
 #endif
-    NSString *result = StatusSignMessage(message);
+    NSString *result = StatusgoSignMessage(message);
     callback(result);
 }
 
@@ -261,7 +261,7 @@ RCT_EXPORT_METHOD(signGroupMembership:(NSString *)content
 #if DEBUG
     NSLog(@"SignGroupMembership() method called");
 #endif
-    NSString *result = StatusSignGroupMembership(content);
+    NSString *result = StatusgoSignGroupMembership(content);
     callback(result);
 }
 
@@ -273,7 +273,7 @@ RCT_EXPORT_METHOD(extractGroupMembershipSignatures:(NSString *)content
 #if DEBUG
     NSLog(@"ExtractGroupMembershipSignatures() method called");
 #endif
-    NSString *result = StatusExtractGroupMembershipSignatures(content);
+    NSString *result = StatusgoExtractGroupMembershipSignatures(content);
     callback(result);
 }
 
@@ -285,7 +285,7 @@ RCT_EXPORT_METHOD(enableInstallation:(NSString *)content
 #if DEBUG
     NSLog(@"EnableInstallation() method called");
 #endif
-    NSString *result = StatusEnableInstallation(content);
+    NSString *result = StatusgoEnableInstallation(content);
     callback(result);
 }
 
@@ -297,7 +297,7 @@ RCT_EXPORT_METHOD(disableInstallation:(NSString *)content
 #if DEBUG
     NSLog(@"DisableInstallation() method called");
 #endif
-    NSString *result = StatusDisableInstallation(content);
+    NSString *result = StatusgoDisableInstallation(content);
     callback(result);
 }
 
@@ -345,7 +345,7 @@ RCT_EXPORT_METHOD(clearStorageAPIs) {
 RCT_EXPORT_METHOD(callRPC:(NSString *)payload
                   callback:(RCTResponseSenderBlock)callback) {
     dispatch_async( dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        NSString *result = StatusCallRPC(payload);
+        NSString *result = StatusgoCallRPC(payload);
         dispatch_async( dispatch_get_main_queue(), ^{
             callback(result);
         });
@@ -355,7 +355,7 @@ RCT_EXPORT_METHOD(callRPC:(NSString *)payload
 RCT_EXPORT_METHOD(callPrivateRPC:(NSString *)payload
                   callback:(RCTResponseSenderBlock)callback) {
     dispatch_async( dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        NSString *result = StatusCallPrivateRPC(payload);
+        NSString *result = StatusgoCallPrivateRPC(payload);
         dispatch_async( dispatch_get_main_queue(), ^{
             callback(result);
         });
@@ -372,14 +372,14 @@ RCT_EXPORT_METHOD(connectionChange:(NSString *)type
 #if DEBUG
     NSLog(@"ConnectionChange() method called");
 #endif
-    StatusConnectionChange(type, isExpensive ? 1 : 0);
+    StatusgoConnectionChange(type, isExpensive ? 1 : 0);
 }
 
 RCT_EXPORT_METHOD(appStateChange:(NSString *)type) {
 #if DEBUG
     NSLog(@"AppStateChange() method called");
 #endif
-    StatusAppStateChange(type);
+    StatusgoAppStateChange(type);
 }
 
 RCT_EXPORT_METHOD(getDeviceUUID:(RCTResponseSenderBlock)callback) {
