@@ -62,6 +62,10 @@ static RCTBridge *bridge;
 
 RCT_EXPORT_MODULE();
 
+- (void)handleSignal:(NSString *)signal {
+    [Status signalEvent:signal.UTF8String];
+}
+
 ////////////////////////////////////////////////////////////////////
 #pragma mark - startNode
 //////////////////////////////////////////////////////////////////// startNode
@@ -69,6 +73,8 @@ RCT_EXPORT_METHOD(startNode:(NSString *)configString) {
 #if DEBUG
     NSLog(@"StartNode() method called");
 #endif
+
+    StatusgoSetMobileSignalHandler(self);
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSError *error = nil;
     NSURL *rootUrl =[[fileManager
@@ -179,7 +185,7 @@ RCT_EXPORT_METHOD(createAccount:(NSString *)password
     NSLog(@"CreateAccount() method called");
 #endif
     NSString *result = StatusgoCreateAccount(password);
-    callback(result);
+    callback(@[result]);
 }
 
 ////////////////////////////////////////////////////////////////////
