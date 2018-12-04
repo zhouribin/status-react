@@ -45,9 +45,18 @@
 }
 @end
 
-static bool isStatusInitialized;
 static RCTBridge *bridge;
-@implementation Status{
+
+@implementation Status
+
+- (instancetype)init {
+    self = [super init];
+    if (!self) {
+        return nil;
+    }
+    // Subscribing to the signals from Status-Go
+    StatusgoSetMobileSignalHandler(self);
+    return self;
 }
 
 -(RCTBridge *)bridge
@@ -60,11 +69,26 @@ static RCTBridge *bridge;
     bridge = newBridge;
 }
 
-RCT_EXPORT_MODULE();
+- (void)handleSignal:(NSString *)signal
+{
+    if(!signal){
+#if DEBUG
+        NSLog(@"SignalEvent nil");
+#endif
+        return;
+    }
 
-- (void)handleSignal:(NSString *)signal {
-    [Status signalEvent:signal.UTF8String];
+#if DEBUG
+    NSLog(@"[handleSignal] Received an event from Status-Go: %@", signal);
+#endif
+    [bridge.eventDispatcher sendAppEventWithName:@"gethEvent"
+                                            body:@{@"jsonEvent": signal}];
+
+    return;
 }
+
+
+RCT_EXPORT_MODULE();
 
 ////////////////////////////////////////////////////////////////////
 #pragma mark - startNode
@@ -74,7 +98,6 @@ RCT_EXPORT_METHOD(startNode:(NSString *)configString) {
     NSLog(@"StartNode() method called");
 #endif
 
-    StatusgoSetMobileSignalHandler(self);
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSError *error = nil;
     NSURL *rootUrl =[[fileManager
@@ -395,26 +418,6 @@ RCT_EXPORT_METHOD(getDeviceUUID:(RCTResponseSenderBlock)callback) {
     NSString* Identifier = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
 
     callback(@[Identifier]);
-}
-
-+ (void)signalEvent:(const char *) signal
-{
-    if(!signal){
-#if DEBUG
-        NSLog(@"SignalEvent nil");
-#endif
-        return;
-    }
-
-    NSString *sig = [NSString stringWithUTF8String:signal];
-#if DEBUG
-    NSLog(@"SignalEvent");
-    NSLog(sig);
-#endif
-    [bridge.eventDispatcher sendAppEventWithName:@"gethEvent"
-                                            body:@{@"jsonEvent": sig}];
-
-    return;
 }
 
 - (bool) is24Hour
