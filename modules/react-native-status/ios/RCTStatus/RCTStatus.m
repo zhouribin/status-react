@@ -219,7 +219,7 @@ RCT_EXPORT_METHOD(notifyUsers:(NSString *)message
                   tokensJSON:(NSString *)tokensJSON
                   callback:(RCTResponseSenderBlock)callback) {
     NSString *result = StatusgoNotifyUsers(message, payloadJSON, tokensJSON);
-    callback(result);
+    callback(@[result]);
 #if DEBUG
     NSLog(@"NotifyUsers() method called");
 #endif
@@ -229,7 +229,7 @@ RCT_EXPORT_METHOD(notifyUsers:(NSString *)message
 RCT_EXPORT_METHOD(addPeer:(NSString *)enode
                   callback:(RCTResponseSenderBlock)callback) {
   NSString *result = StatusgoAddPeer(enode);
-  callback(result);
+  callback(@[result]);
 #if DEBUG
   NSLog(@"AddPeer() method called");
 #endif
@@ -243,7 +243,7 @@ RCT_EXPORT_METHOD(recoverAccount:(NSString *)passphrase
     NSLog(@"RecoverAccount() method called");
 #endif
     NSString *result = StatusgoRecoverAccount(password, passphrase);
-    callback(result);
+    callback(@[result]);
 }
 
 //////////////////////////////////////////////////////////////////// login
@@ -254,7 +254,7 @@ RCT_EXPORT_METHOD(login:(NSString *)address
     NSLog(@"Login() method called");
 #endif
     NSString *result = StatusgoLogin(address, password);
-    callback(result);
+    callback(@[result]);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -267,7 +267,7 @@ RCT_EXPORT_METHOD(sendTransaction:(NSString *)txArgsJSON
     NSLog(@"SendTransaction() method called");
 #endif
     NSString *result = StatusgoSendTransaction(txArgsJSON, password);
-    callback(result);
+    callback(@[result]);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -279,7 +279,7 @@ RCT_EXPORT_METHOD(signMessage:(NSString *)message
     NSLog(@"SignMessage() method called");
 #endif
     NSString *result = StatusgoSignMessage(message);
-    callback(result);
+    callback(@[result]);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -291,7 +291,7 @@ RCT_EXPORT_METHOD(signGroupMembership:(NSString *)content
     NSLog(@"SignGroupMembership() method called");
 #endif
     NSString *result = StatusgoSignGroupMembership(content);
-    callback(result);
+    callback(@[result]);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -303,7 +303,7 @@ RCT_EXPORT_METHOD(extractGroupMembershipSignatures:(NSString *)content
     NSLog(@"ExtractGroupMembershipSignatures() method called");
 #endif
     NSString *result = StatusgoExtractGroupMembershipSignatures(content);
-    callback(result);
+    callback(@[result]);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -315,7 +315,7 @@ RCT_EXPORT_METHOD(enableInstallation:(NSString *)content
     NSLog(@"EnableInstallation() method called");
 #endif
     NSString *result = StatusgoEnableInstallation(content);
-    callback(result);
+    callback(@[result]);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -327,7 +327,7 @@ RCT_EXPORT_METHOD(disableInstallation:(NSString *)content
     NSLog(@"DisableInstallation() method called");
 #endif
     NSString *result = StatusgoDisableInstallation(content);
-    callback(result);
+    callback(@[result]);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -375,8 +375,8 @@ RCT_EXPORT_METHOD(callRPC:(NSString *)payload
                   callback:(RCTResponseSenderBlock)callback) {
     dispatch_async( dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSString *result = StatusgoCallRPC(payload);
-        dispatch_async( dispatch_get_main_queue(), ^{
-            callback(result);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            callback(@[result]);
         });
     });
 }
@@ -385,8 +385,8 @@ RCT_EXPORT_METHOD(callPrivateRPC:(NSString *)payload
                   callback:(RCTResponseSenderBlock)callback) {
     dispatch_async( dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSString *result = StatusgoCallPrivateRPC(payload);
-        dispatch_async( dispatch_get_main_queue(), ^{
-            callback(result);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            callback(@[result]);
         });
     });
 }
