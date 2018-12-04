@@ -835,6 +835,8 @@
     "current-pin-description": "Enter your PIN to proceed",
     "new-pin-description": "Enter new PIN code",
     "change-pin": "Change PIN",
+    "enter-pin": "Enter PIN",
+    "enter-pin-description": "Enter your PIN code to login\n to your account",
     "create-pin": "Create a PIN",
     "create-pin-description": "You'll need your card + this PIN to log in and to confirm transactions",
     "repeat-pin": "Repeat new PIN",

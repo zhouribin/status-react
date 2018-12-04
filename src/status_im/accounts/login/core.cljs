@@ -40,8 +40,13 @@
 
 ;;;; Handlers
 (fx/defn login [cofx]
-  (let [{:keys [address password]} (accounts.db/credentials cofx)]
-    {:accounts.login/login [address password]}))
+  (if (get-in cofx [:db :hardwallet :whisper-private-key])
+    {:hardwallet/login-with-keycard (-> cofx
+                                        (get-in [:db :hardwallet])
+                                        (select-keys [:whisper-private-key :encryption-public-key])
+                                        (assoc :on-result #(re-frame/dispatch [:accounts.login.callback/login-success %])))}
+    (let [{:keys [address password]} (accounts.db/credentials cofx)]
+      {:accounts.login/login [address password]})))
 
 (fx/defn initialize-wallet [cofx]
   (fx/merge cofx
@@ -200,18 +205,34 @@
        (unknown-realm-error {:realm-error  realm-error
                              :erase-button erase-button})))))
 
-(fx/defn open-login [{:keys [db]} address photo-path name]
-  {:db (-> db
-           (update :accounts/login assoc
-                   :address address
-                   :photo-path photo-path
-                   :name name)
-           (update :accounts/login dissoc
-                   :error
-                   :password))
-   :keychain/can-save-user-password? nil
-   :keychain/get-user-password [address
-                                #(re-frame/dispatch [:accounts.login.callback/get-user-password-success %])]})
+(fx/defn open-keycard-login
+  [{:keys [db] :as cofx}]
+  (let [card-connected? (get-in db [:hardwallet :card-connected?])
+        navigation-stack (:navigation-stack db)]
+    (fx/merge cofx
+              {:db (assoc-in db [:hardwallet :pin :enter-step] :login)}
+              (if (empty? navigation-stack)
+                (navigation/navigate-to-clean :accounts nil)
+                (if card-connected?
+                  (navigation/navigate-to-clean :enter-pin nil)
+                  (navigation/navigate-to-clean :hardwallet-login nil))))))
+
+(fx/defn open-login [{:keys [db] :as cofx} address photo-path name]
+  (let [keycard-account? (get-in db [:accounts/accounts address :keycard-instance-uid])]
+    (fx/merge cofx
+              {:db (-> db
+                       (update :accounts/login assoc
+                               :address address
+                               :photo-path photo-path
+                               :name name)
+                       (update :accounts/login dissoc
+                               :error
+                               :password))}
+              (if keycard-account?
+                (open-keycard-login)
+                {:keychain/can-save-user-password? nil
+                 :keychain/get-user-password       [address
+                                                    #(re-frame/dispatch [:accounts.login.callback/get-user-password-success %])]}))))
 
 (fx/defn open-login-callback
   [{:keys [db] :as cofx} password]
