@@ -38,10 +38,6 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
 
     private static final String TAG = "StatusModule";
 
-    private final static int TESTNET_NETWORK_ID = 3;
-
-    private HashMap<String, Callback> callbacks = new HashMap<>();
-
     private static StatusModule module;
     private ServiceConnector status = null;
     private ExecutorService executor = null;
@@ -66,7 +62,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
     }
 
     @Override
-    public void onHostResume() {  // Actvity `onResume`
+    public void onHostResume() {  // Activity `onResume`
         module = this;
         Activity currentActivity = getCurrentActivity();
         if (currentActivity == null) {

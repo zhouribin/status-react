@@ -6,9 +6,9 @@ import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.uimanager.ViewManager;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import im.status.ethereum.function.Function;
 import statusgo.Statusgo;
 
@@ -24,12 +24,8 @@ public class StatusPackage implements ReactPackage {
 
     @Override
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
-        List<NativeModule> modules = new ArrayList<>();
-        System.loadLibrary("statusgoraw");
-        System.loadLibrary("statusgo");
-        modules.add(new StatusModule(reactContext, this.debug, this.devCluster));
-
-        return modules;
+        NativeModule statusModule = new StatusModule(reactContext, this.debug, this.devCluster);
+        return Collections.singletonList(statusModule);
     }
 
     public List<Class<? extends JavaScriptModule>> createJSModules() {
