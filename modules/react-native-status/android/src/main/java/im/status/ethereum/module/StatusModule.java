@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.*;
 import android.view.WindowManager;
-import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
@@ -14,7 +13,9 @@ import android.webkit.WebStorage;
 
 import com.facebook.react.bridge.*;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
-import com.github.status_im.status_go.Statusgo;
+
+import statusgo.SignalHandler;
+import statusgo.Statusgo;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +34,7 @@ import org.json.JSONException;
 
 import javax.annotation.Nullable;
 
-class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventListener, ConnectorHandler {
+class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventListener, ConnectorHandler, SignalHandler {
 
     private static final String TAG = "StatusModule";
 
@@ -79,8 +80,9 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         }
 
         status.bindService();
+        Statusgo.setMobileSignalHandler(this);
 
-        signalEvent("{\"type\":\"module.initialized\"}");
+        handleSignal("{\"type\":\"module.initialized\"}");
     }
 
     @Override
@@ -107,7 +109,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
     }
 
 
-    void signalEvent(String jsonEvent) {
+    public void handleSignal(String jsonEvent) {
         Log.d(TAG, "Signal event: " + jsonEvent);
         WritableMap params = Arguments.createMap();
         params.putString("jsonEvent", jsonEvent);
@@ -245,7 +247,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
 
             prettyPrintConfig(updatedJsonConfigString);
 
-            String res = Statusgo.StartNode(updatedJsonConfigString);
+            String res = Statusgo.startNode(updatedJsonConfigString);
             if (res.startsWith("{\"error\":\"\"")) {
                 Log.d(TAG, "StartNode result: " + res);
                 Log.d(TAG, "Geth node started");
@@ -364,7 +366,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
             @Override
             public void run() {
                 Log.d(TAG, "stopNode");
-                String res = Statusgo.StopNode();
+                String res = Statusgo.stopNode();
             }
         };
 
@@ -382,7 +384,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                String result = Statusgo.Login(address, password);
+                String result = Statusgo.login(address, password);
 
                 callback.invoke(result);
             }
@@ -402,7 +404,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                String res = Statusgo.CreateAccount(password);
+                String res = Statusgo.createAccount(password);
 
                 callback.invoke(res);
             }
@@ -422,7 +424,8 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Runnable r = new Runnable() {
                 @Override
                 public void run() {
-                    String res = Statusgo.NotifyUsers(message, payloadJSON, tokensJSON);
+                    // TODO: remove with new PN metadata leak fix
+                    String res = Statusgo.notifyUsers("", payloadJSON, tokensJSON);
 
                     callback.invoke(res);
                 }
@@ -442,7 +445,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Runnable r = new Runnable() {
                 @Override
                 public void run() {
-                    String res = Statusgo.AddPeer(enode);
+                    String res = Statusgo.addPeer(enode);
 
                     callback.invoke(res);
                 }
@@ -462,7 +465,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                String res = Statusgo.RecoverAccount(password, passphrase);
+                String res = Statusgo.recoverAccount(password, passphrase);
 
                 callback.invoke(res);
             }
@@ -486,7 +489,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                String res = Statusgo.SendTransaction(txArgsJSON, password);
+                String res = Statusgo.sendTransaction(txArgsJSON, password);
                 callback.invoke(res);
             }
         };
@@ -505,7 +508,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                String res = Statusgo.SignMessage(rpcParams);
+                String res = Statusgo.signMessage(rpcParams);
                 callback.invoke(res);
             }
         };
@@ -605,7 +608,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Bundle bundle = message.getData();
 
         String event = bundle.getString("event");
-        signalEvent(event);
+        handleSignal(event);
 
         return true;
     }
@@ -625,7 +628,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                String res = Statusgo.CallRPC(payload);
+                String res = Statusgo.callRPC(payload);
                 callback.invoke(res);
             }
         };
@@ -638,7 +641,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                String res = Statusgo.CallPrivateRPC(payload);
+                String res = Statusgo.callPrivateRPC(payload);
                 callback.invoke(res);
             }
         };
@@ -654,13 +657,13 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
     @ReactMethod
     public void connectionChange(final String type, final boolean isExpensive) {
         Log.d(TAG, "ConnectionChange: " + type + ", is expensive " + isExpensive);
-        Statusgo.ConnectionChange(type, isExpensive ? 1 : 0);
+        Statusgo.connectionChange(type, isExpensive ? 1 : 0);
     }
 
     @ReactMethod
     public void appStateChange(final String type) {
         Log.d(TAG, "AppStateChange: " + type);
-        Statusgo.AppStateChange(type);
+        Statusgo.appStateChange(type);
     }
     
     private static String uniqueID = null;
@@ -697,7 +700,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
     Runnable r = new Runnable() {
       @Override
       public void run() {
-        String result = Statusgo.ExtractGroupMembershipSignatures(signaturePairs);
+        String result = Statusgo.extractGroupMembershipSignatures(signaturePairs);
 
         callback.invoke(result);
       }
@@ -717,7 +720,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
     Runnable r = new Runnable() {
       @Override
       public void run() {
-        String result = Statusgo.SignGroupMembership(content);
+        String result = Statusgo.signGroupMembership(content);
 
         callback.invoke(result);
       }
@@ -737,7 +740,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
     Runnable r = new Runnable() {
       @Override
       public void run() {
-        String result = Statusgo.EnableInstallation(installationId);
+        String result = Statusgo.enableInstallation(installationId);
 
         callback.invoke(result);
       }
@@ -757,7 +760,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
     Runnable r = new Runnable() {
       @Override
       public void run() {
-        String result = Statusgo.DisableInstallation(installationId);
+        String result = Statusgo.disableInstallation(installationId);
 
         callback.invoke(result);
       }
