@@ -793,6 +793,8 @@
     "taking-long-hold-phone-connected": "This could take up to 30 seconds.\n Please hold card connected to the phone",
     "pin-code": "PIN code",
     "pin-code-description": "Unlocks the card",
+    "enter-pin": "Enter PIN",
+    "enter-pin-description": "Enter your PIN code to login\n to your account",
     "create-pin": "Create a PIN",
     "create-pin-description": "You'll need your card + this PIN to log in and to confirm transactions",
     "repeat-pin": "Repeate your PIN",

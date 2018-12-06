@@ -56,17 +56,16 @@
                         (repeat (- 6 (count pin))
                                 nil)))))])
 
-(defn pin-view [{:keys [pin title step status error]}]
+(defn pin-view [{:keys [pin title-label description-label step status error-label]}]
   (let [enabled? (not= status :validating)]
     [react/view styles/pin-container
      [react/view styles/center-container
-      ;[components/wizard-step 4]
       [react/text {:style styles/center-title-text
                    :font  :bold}
-       (i18n/label title)]
+       (i18n/label title-label)]
       [react/text {:style           styles/create-pin-text
                    :number-of-lines 2}
-       (i18n/label :t/create-pin-description)]
+       (i18n/label description-label)]
       (case status
         :validating [react/view styles/waiting-indicator-container
                      [react/activity-indicator {:animating true
@@ -74,7 +73,7 @@
         :error [react/view styles/error-container
                 [react/text {:style styles/error-text
                              :font  :medium}
-                 (i18n/label error)]]
+                 (i18n/label error-label)]]
         [pin-indicators pin])
       [numpad step enabled?]]]))
 
@@ -83,15 +82,17 @@
             confirmation [:hardwallet/pin-confirmation]
             enter-step [:hardwallet/pin-enter-step]
             status [:hardwallet/pin-status]
-            error [:hardwallet/pin-error]]
+            error-label [:hardwallet/pin-error-label]]
     (case enter-step
-      :original [pin-view {:pin    original
-                           :title  :t/create-pin
-                           :step   :original
-                           :status status
-                           :error  error}]
-      :confirmation [pin-view {:pin    confirmation
-                               :title  :t/repeat-pin
-                               :step   :confirmation
-                               :status status
-                               :error  error}])))
+      :original [pin-view {:pin               original
+                           :title-label       :t/create-pin
+                           :description-label :t/create-pin-description
+                           :step              :original
+                           :status            status
+                           :error-label       error-label}]
+      :confirmation [pin-view {:pin               confirmation
+                               :title-label       :t/repeat-pin
+                               :description-label :t/create-pin-description
+                               :step              :confirmation
+                               :status            status
+                               :error-label       error-label}])))

@@ -48,10 +48,10 @@
                                        "keyCardOnDisconnected"
                                        #(re-frame/dispatch [:hardwallet.callback/on-card-disconnected %]))}])))
 
-(defn get-application-info []
+(defn get-application-info [on-success]
   (.. keycard
       getApplicationInfo
-      (then #(re-frame/dispatch [:hardwallet.callback/on-get-application-info-success %]))
+      (then #(re-frame/dispatch [:hardwallet.callback/on-get-application-info-success % on-success]))
       (catch #(re-frame/dispatch [:hardwallet.callback/on-get-application-info-error (error-object->map %)]))))
 
 (defn start []

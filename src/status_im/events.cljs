@@ -831,8 +831,8 @@
 
 (handlers/register-handler-fx
  :hardwallet.callback/on-get-application-info-success
- (fn [cofx [_ info]]
-   (hardwallet/on-get-application-info-success cofx info)))
+ (fn [cofx [_ info on-success]]
+   (hardwallet/on-get-application-info-success cofx info on-success)))
 
 (handlers/register-handler-fx
  :hardwallet.callback/on-get-application-info-error
@@ -906,6 +906,11 @@
  :hardwallet.callback/on-get-keys-success
  (fn [cofx [_ data]]
    (hardwallet/on-get-keys-success cofx data)))
+
+(handlers/register-handler-fx
+ :hardwallet.callback/login-with-keycard
+ (fn [cofx _]
+   (hardwallet/login-with-keycard cofx)))
 
 (handlers/register-handler-fx
  :hardwallet.callback/on-get-keys-error
