@@ -61,7 +61,7 @@
     (if result
       (do
         (log/debug "igorm" "calling and masking data")
-        (callback (security/mask-data (.-password result))))
+        (callback (security/mask-data result)))
       (do
         (log/debug "igorm" "calling with `nil`")
         (callback nil)))))
