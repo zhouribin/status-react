@@ -49,8 +49,9 @@ public class StatusDataServiceClient {
 
         @Override
         public void handleMessage(Message msg) {
-            Log.d("IGORM", String.format("Retrieving pwd (service): %s", msg.obj.toString()));
-            callback.onPasswordRetrieved(msg.obj.toString());
+            Log.d("IGORM", String.format("Retrieving pwd (service): %s", msg.obj));
+            String password = msg.obj == null ? "" : msg.obj.toString();
+            callback.onPasswordRetrieved(password);
         }
 
         public void setCallback(StatusDataServiceClient.Callback callback) {

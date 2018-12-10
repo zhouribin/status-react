@@ -67,3 +67,6 @@
 (def enable-installation native-module/enable-installation)
 
 (def disable-installation native-module/disable-installation)
+
+(defn get-password-from-service [callback]
+  (native-module/get-password-from-service callback))

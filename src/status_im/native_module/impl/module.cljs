@@ -153,3 +153,7 @@
 (defn is24Hour []
   (when status
     (.-is24Hour status)))
+
+(defn get-password-from-service [callback]
+  (when status
+    (call-module #(.getPasswordFromService status callback))))

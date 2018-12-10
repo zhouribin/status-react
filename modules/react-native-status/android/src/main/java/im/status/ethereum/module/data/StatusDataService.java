@@ -33,9 +33,12 @@ public class StatusDataService extends Service {
             Log.d("IGORM", String.format("StatusDataService / handleMessage: %d %s", msg.what, msg.obj));
             switch (msg.what) {
                 case STORE_PASSWORD:
-                    this.setPassword(msg.obj.toString());
+                    Log.d("IGORM", "Storing password");
+
+                    this.setPassword(msg.obj != null ? msg.obj.toString() : null);
                     break;
                 case RETRIEVE_PASSWORD:
+                    Log.d("IGORM", "Attempting to retrieve password");
                     this.replyTo(msg.replyTo, this.getPassword());
             }
             super.handleMessage(msg);
@@ -48,6 +51,7 @@ public class StatusDataService extends Service {
             }
 
             try {
+                Log.d("IGORM", String.format("Replying with password %s", password));
                 messenger.send(Message.obtain(null, 0, password));
             } catch (RemoteException e) {
                 Log.e(TAG, "Error while sending data to the client.", e);

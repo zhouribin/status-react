@@ -2,6 +2,8 @@
   (:require [re-frame.core :as re-frame]
             [taoensso.timbre :as log]
             [status-im.react-native.js-dependencies :as rn]
+            [status-im.native-module.core :as native-module]
+            [status-im.utils.types :as types]
             [status-im.utils.platform :as platform]
             [status-im.utils.security :as security]))
 
@@ -53,15 +55,22 @@
                                  (clj->js keychain-restricted-availability))
         (.then callback))))
 
-(defn handle-callback [callback result]
-  (if result
-    (callback (security/mask-data (.-password result)))
-    (callback nil)))
+(defn handle-callback [callback r]
+  (let [result (str r)]
+    (log/debug "igorm" "handle-callback -> '" result "'  " (type result))
+    (if result
+      (do
+        (log/debug "igorm" "calling and masking data")
+        (callback (security/mask-data (.-password result))))
+      (do
+        (log/debug "igorm" "calling with `nil`")
+        (callback nil)))))
 
 ;; Gets the password for a specified address from the Keychain
 (defn get-user-password [address callback]
+  (log/debug "igorm" "get-user-password was called")
   (if-not platform/ios?
-    (callback) ;; no-op on Androids (for now)
+    (native-module/get-password-from-service (partial handle-callback callback))
     (-> (.getInternetCredentials rn/keychain address)
         (.then (partial handle-callback callback)))))
 

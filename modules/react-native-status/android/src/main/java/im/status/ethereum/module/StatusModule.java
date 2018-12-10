@@ -331,6 +331,10 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         dataServiceClient.retrievePassword(new StatusDataServiceClient.Callback() {
             @Override
             public void onPasswordRetrieved(String password) {
+                Log.d("igorm", String.format("java -> invoking callback with %s", password));
+                if (password == null) {
+                    password = "";
+                }
                 callback.invoke(password);
             }
         });
