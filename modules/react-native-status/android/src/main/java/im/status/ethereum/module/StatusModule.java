@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -32,6 +33,9 @@ import org.json.JSONObject;
 import org.json.JSONException;
 
 import javax.annotation.Nullable;
+
+import im.status.ethereum.module.data.StatusDataService;
+import im.status.ethereum.module.data.StatusDataServiceClient;
 
 class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventListener, ConnectorHandler {
 
@@ -47,6 +51,8 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
     private boolean debug;
     private boolean devCluster;
     private ReactApplicationContext reactContext;
+    private final StatusDataServiceClient dataServiceClient;
+    private ServiceConnector statusData;
 
     StatusModule(ReactApplicationContext reactContext, boolean debug, boolean devCluster) {
         super(reactContext);
@@ -56,6 +62,7 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
         this.debug = debug;
         this.devCluster = devCluster;
         this.reactContext = reactContext;
+        this.dataServiceClient = new StatusDataServiceClient();
         reactContext.addLifecycleEventListener(this);
     }
 
@@ -73,8 +80,14 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
             return;
         }
 
+        if (statusData == null) {
+            statusData = new ServiceConnector(currentActivity, StatusDataService.class, dataServiceClient.getServiceConnection());
+        }
+
+        statusData.bindService();
+
         if (status == null) {
-            status = new ServiceConnector(currentActivity, StatusService.class);
+            status = new ServiceConnector(currentActivity, StatusService.class, null);
             status.registerHandler(this);
         }
 
@@ -314,6 +327,21 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
     }
 
     @ReactMethod
+    public void getPasswordFromService(final Callback callback) {
+        dataServiceClient.retrievePassword(new StatusDataServiceClient.Callback() {
+            @Override
+            public void onPasswordRetrieved(String password) {
+                callback.invoke(password);
+            }
+        });
+    }
+
+    /* called directly */
+    public void storePasswordInService(String password) {
+        dataServiceClient.storePassword(password);
+    }
+
+    @ReactMethod
     public void shouldMoveToInternalStorage(Callback callback) {
         String oldDir = getOldExternalDir();
         String newDir = getNewInternalDir();
@@ -383,7 +411,13 @@ class StatusModule extends ReactContextBaseJavaModule implements LifecycleEventL
             @Override
             public void run() {
                 String result = Statusgo.Login(address, password);
-
+                dataServiceClient.storePassword(password);
+                dataServiceClient.retrievePassword(new StatusDataServiceClient.Callback() {
+                    @Override
+                    public void onPasswordRetrieved(String password) {
+                        Log.d("IGORM", String.format("Retrieved pwd: %s", password));
+                    }
+                });
                 callback.invoke(result);
             }
         };

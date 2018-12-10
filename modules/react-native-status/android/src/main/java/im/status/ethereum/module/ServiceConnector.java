@@ -1,6 +1,7 @@
 package im.status.ethereum.module;
 
 
+import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -62,7 +63,9 @@ public class ServiceConnector {
     /**
      * Class for interacting with the main interface of the service.
      */
-    private ServiceConnection serviceConnection = new ServiceConnection() {
+    private ServiceConnection serviceConnection = null;
+
+    private ServiceConnection defaultServiceConnection = new ServiceConnection() {
 
         public void onServiceConnected(ComponentName className, IBinder service) {
 
@@ -91,9 +94,10 @@ public class ServiceConnector {
         }
     };
 
-    ServiceConnector(Context context, Class serviceClass) {
+    ServiceConnector(Context context, Class serviceClass, ServiceConnection connection) {
         this.context = context;
         this.serviceClass = serviceClass;
+        this.serviceConnection = connection != null ? connection : this.defaultServiceConnection;
         // Handler thread to avoid running on the main UI thread
         HandlerThread handlerThread = new HandlerThread("HandlerThread");
         handlerThread.start();
@@ -120,10 +124,6 @@ public class ServiceConnector {
         if (isBound && serviceConnection != null) {
             context.getApplicationContext().unbindService(serviceConnection);
             isBound = false;
-/*
-            Intent intent = new Intent(context, serviceClass);
-            context.getApplicationContext().stopService(intent);
-*/
         }
     }
 
