@@ -12,7 +12,9 @@
             [status-im.ui.screens.add-new.new-public-chat.db :as public-chat.db]
             [taoensso.timbre :as log]
             [status-im.ui.components.react :as react]
-            [status-im.ui.components.colors :as colors]))
+            [status-im.ui.components.colors :as colors]
+            [status-im.ui.screens.desktop.main.chat.views :as chat-view]
+            [status-im.ui.screens.desktop.main.tabs.home.views :as home-view]))
 
 (defn topic-input-placeholder []
   [react/text {:style styles/topic-placeholder} "#"])
@@ -24,6 +26,15 @@
      text]]
    [react/view {:style styles/tooltip-triangle}]])
 
+(views/defview new-message []
+  (views/letsubs [chat-id             [:chats/current-chat-id]]
+    [react/view {:style styles/new-view}
+     [react/view {:style styles/new-contact-title}
+      [react/text {:style styles/new-contact-title-text
+                   :font  :medium}
+       "New message with " chat-id]]
+     [chat-view/chat-text-input chat-id nil]]))
+
 (views/defview new-one-to-one []
   (views/letsubs [new-contact-identity [:get :contacts/new-identity]
                   contacts             [:contacts/all-added-people-contacts]
@@ -34,6 +45,7 @@
       [react/text {:style styles/new-contact-title-text
                    :font  :medium}
        (i18n/label :new-chat)]]
+     [home-view/chat-list-view false]
      [react/text {:style styles/new-contact-subtitle} (i18n/label :enter-ens-or-contact-code)]
      (let [disable?            (or (not (string/blank? chat-error))
                                    (string/blank? new-contact-identity))
@@ -59,20 +71,7 @@
           {:style (styles/add-contact-button disable?)}
           [react/text
            {:style (styles/add-contact-button-text disable?)}
-           (i18n/label :start-chat)]]]])
-     (when (seq contacts) [react/text {:style styles/new-contact-subtitle} (i18n/label :or-choose-a-contact)])
-     [react/scroll-view
-      [react/view {:style styles/suggested-contacts}
-       (doall
-        (for [c contacts]
-          ^{:key (:public-key c)}
-          [react/touchable-highlight {:on-press #(do
-                                                   (re-frame/dispatch [:set :contacts/new-identity (:public-key c)])
-                                                   (re-frame/dispatch [:contact.ui/contact-code-submitted (:public-key c)]))}
-           [react/view {:style styles/suggested-contact-view}
-            [react/image {:style  styles/suggested-contact-image
-                          :source {:uri (:photo-path c)}}]
-            [react/text {:style styles/new-contact-subtitle} (:name c)]]]))]]]))
+           (i18n/label :start-chat)]]]])]))
 
 (views/defview new-group-chat []
   [react/view {:style styles/new-view}

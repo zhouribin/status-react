@@ -18,9 +18,10 @@
   (views/letsubs [tab [:get-in [:desktop/desktop :tab-view-id]]]
     (let [component (case tab
                       :profile profile.views/profile-data
-                      :home chat.views/chat-view)]
-      [react/view {:style {:flex 1}}
-       [component]])))
+                      nil)]
+      (when component
+        [react/view {:style {:flex 1}}
+         [component]]))))
 
 (views/defview popup-view []
   (views/letsubs [popup [:get-in [:desktop :popup]]]
@@ -35,23 +36,25 @@
 (views/defview main-view []
   (views/letsubs [view-id [:get :view-id]]
     (let [component (case view-id
-                      :chat         chat.views/chat-view
+                      :chat chat.views/chat-view
+                      :desktop/new-message  add-new.views/new-message
                       :desktop/new-one-to-one  add-new.views/new-one-to-one
                       :desktop/new-public-chat add-new.views/new-public-chat
                       :desktop/new-group-chat add-new.views/new-group-chat
-                      :qr-code      profile.views/qr-code
+                      :qr-code profile.views/qr-code
                       :advanced-settings profile.views/advanced-settings
                       :backup-recovery-phrase profile.views/backup-recovery-phrase
-                      nil)]
+                      chat.views/chat-view)]
       (when component
         [react/view {:style {:flex 1}}
          [component]]))))
 
 (views/defview main-views []
-  [react/view {:style styles/main-views}
-   [react/view {:style styles/left-sidebar}
-    [react/view {:style {:flex 1}}
-     [tab-views]]
-    [tabs/main-tabs]]
-   [react/view {:style styles/pane-separator}]
-   [main-view]])
+  [react/view {:style {:flex-direction :column
+                       :flex 1}}
+   [react/view {:style {:flex-direction :row
+                        :flex 1}}
+    [tab-views]
+    [react/view {:style styles/pane-separator}]
+    [main-view]]
+   [tabs/main-tabs]])

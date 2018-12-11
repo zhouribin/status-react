@@ -769,6 +769,11 @@
  (fn [cofx _]
    (messages.core/change-current-message cofx :child)))
 
+(handlers/register-handler-fx
+ :messages/new-message
+ (fn [cofx [_ chat-id]]
+   (messages.core/new-message cofx chat-id)))
+
 ;; signal module
 
 (handlers/register-handler-fx

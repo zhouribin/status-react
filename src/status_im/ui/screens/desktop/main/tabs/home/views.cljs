@@ -20,16 +20,35 @@
             [status-im.utils.config :as config]))
 
 (views/defview chat-list-item-inner-view [{:keys [chat-id name group-chat color public? public-key] :as chat-item}]
-  [react/view {:style (styles/topic-image color)}
-   [react/text {:style styles/topic-text}
-    "Inbox"]])
+  (views/letsubs [photo-path              [:contacts/chat-photo chat-id]
+                  chat-name               [:chats/chat-name chat-id]]
+    (let [name (or chat-name
+                   (gfycat/generate-gfy public-key))]
+      [react/view {:style (styles/chat-list-item false)}
+       [react/view {:style styles/img-container}
+        (if public?
+          [react/view {:style (styles/topic-image color)}
+           [react/text {:style styles/topic-text}
+            (string/capitalize (second name))]]
+          [react/image {:style styles/chat-icon
+                        :source {:uri photo-path}}])]
+       [react/view {:style styles/chat-name-last-msg-box}
+        [react/view {:style styles/chat-name-box}
+         (when (and group-chat (not public?))
+           [icons/icon :icons/group-chat])
+         (when public?
+           [icons/icon :icons/public-chat])
+         [react/text {:ellipsize-mode  :tail
+                      :number-of-lines 1
+                      :style           (styles/chat-name false)}
+          name]]]])))
 
 (defn chat-list-item [[chat-id
                        {:keys [group-chat public?] :as chat}]]
   [react/touchable-highlight
    {:on-press (fn [arg]
                 (let [right-click? (= "right" (.-button (.-nativeEvent arg)))]
-                  (re-frame/dispatch [:chat.ui/navigate-to-chat chat-id])
+                  (re-frame/dispatch [:messages/new-message chat-id])
                   (when right-click?
                     (popup-menu/show-desktop-menu
                      (popup-menu/get-chat-menu-items group-chat public? chat-id)))))}

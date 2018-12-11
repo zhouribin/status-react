@@ -29,7 +29,8 @@
             [status-im.utils.fx :as fx]
             [taoensso.timbre :as log]
             [status-im.data-store.messages :as messages-store]
-            [status-im.transport.message.transit :as transit]))
+            [status-im.transport.message.transit :as transit]
+            [status-im.ui.screens.navigation :as navigation]))
 
 (defn- wrap-group-message
   "Wrap a group message in a membership update"
@@ -345,7 +346,7 @@
 
 (def ^:private transport-keys [:content :content-type :message-type :clock-value :timestamp])
 
-(fx/defn upsert-and-send [{:keys [now] :as cofx} {:keys [chat-id from] :as message}]
+(fx/defn upsert-and-send [{:keys [now db] :as cofx} {:keys [chat-id from] :as message}]
   (let [send-record     (protocol/map->Message (select-keys message transport-keys))
         old-message-id  (transport.utils/old-message-id send-record)
         wrapped-record  (if (= (:message-type send-record) :group-user-message)
@@ -359,6 +360,9 @@
                                :raw-payload-hash (transport.utils/sha3 raw-payload))]
 
     (fx/merge cofx
+              {:db (assoc db
+                          :current-message-id message-id)}
+              (navigation/navigate-to-clean :home {})
               (chat-model/upsert-chat {:chat-id chat-id
                                        :timestamp now})
               (add-message false message-with-id true)

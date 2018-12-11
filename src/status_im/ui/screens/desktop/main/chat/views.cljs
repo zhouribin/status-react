@@ -1,32 +1,34 @@
 (ns status-im.ui.screens.desktop.main.chat.views
   (:require-macros [status-im.utils.views :as views])
-  (:require [re-frame.core :as re-frame]
-            [status-im.ui.components.icons.vector-icons :as icons]
-            [clojure.string :as string]
-            [status-im.ui.screens.chat.styles.message.message :as message.style]
-            [status-im.ui.screens.chat.message.message :as message]
-            [taoensso.timbre :as log]
-            [reagent.core :as reagent]
-            [status-im.ui.screens.chat.utils :as chat-utils]
-            [status-im.utils.gfycat.core :as gfycat]
-            [status-im.constants :as constants]
-            [status-im.utils.identicon :as identicon]
-            [status-im.utils.datetime :as time]
-            [status-im.ui.components.button.view :as button]
-            [status-im.utils.utils :as utils]
-            [status-im.ui.components.react :as react]
-            [status-im.ui.components.connectivity.view :as connectivity]
-            [status-im.ui.components.colors :as colors]
-            [status-im.ui.screens.chat.message.datemark :as message.datemark]
-            [status-im.ui.screens.desktop.main.tabs.profile.views :as profile.views]
-            [status-im.ui.components.icons.vector-icons :as vector-icons]
-            [status-im.ui.screens.desktop.main.chat.styles :as styles]
-            [status-im.contact.db :as contact.db]
-            [status-im.ui.components.popup-menu.views :refer [show-desktop-menu
-                                                              get-chat-menu-items]]
-            [status-im.i18n :as i18n]
-            [status-im.ui.screens.desktop.main.chat.events :as chat.events]
-            [status-im.ui.screens.chat.message.message :as chat.message]))
+  (:require             [status-im.ui.components.list.views :as list.views]
+                        [re-frame.core :as re-frame]
+                        [status-im.ui.components.icons.vector-icons :as icons]
+                        [clojure.string :as string]
+                        [status-im.ui.screens.chat.styles.message.message :as message.style]
+                        [status-im.ui.components.popup-menu.views :as popup-menu]
+                        [status-im.ui.screens.chat.message.message :as message]
+                        [taoensso.timbre :as log]
+                        [reagent.core :as reagent]
+                        [status-im.ui.screens.chat.utils :as chat-utils]
+                        [status-im.utils.gfycat.core :as gfycat]
+                        [status-im.constants :as constants]
+                        [status-im.utils.identicon :as identicon]
+                        [status-im.utils.datetime :as time]
+                        [status-im.ui.components.button.view :as button]
+                        [status-im.utils.utils :as utils]
+                        [status-im.ui.components.react :as react]
+                        [status-im.ui.components.connectivity.view :as connectivity]
+                        [status-im.ui.components.colors :as colors]
+                        [status-im.ui.screens.chat.message.datemark :as message.datemark]
+                        [status-im.ui.screens.desktop.main.tabs.profile.views :as profile.views]
+                        [status-im.ui.components.icons.vector-icons :as vector-icons]
+                        [status-im.ui.screens.desktop.main.chat.styles :as styles]
+                        [status-im.contact.db :as contact.db]
+                        [status-im.ui.components.popup-menu.views :refer [show-desktop-menu
+                                                                          get-chat-menu-items]]
+                        [status-im.i18n :as i18n]
+                        [status-im.ui.screens.desktop.main.chat.events :as chat.events]
+                        [status-im.ui.screens.chat.message.message :as chat.message]))
 
 (views/defview toolbar-chat-view [{:keys [chat-id color public-key public? group-chat]
                                    :as current-chat}]
@@ -180,17 +182,6 @@
      #_[react/view {:style (message.style/delivery-status outgoing)}
         [message/message-delivery-status message]]]))
 
-(defn inc-last [current-path]
-  (conj (pop current-path) (inc (peek current-path))))
-
-(defn dec-last [current-path]
-  (conj (pop current-path) (dec (peek current-path))))
-
-(defn childs [{:keys [children]}]
-  (apply +
-         (count children)
-         (map #(childs %) children)))
-
 (views/defview send-button [inp-ref input-text chat-id response-id]
   (let [empty? (= "" @input-text)]
     [react/touchable-highlight {:style    styles/send-button
@@ -223,7 +214,7 @@
                                                     (reset! input-text text)))}]
      [send-button input-ref input-text chat-id response-id]]))
 
-(defn tag-view [tag {:keys [on-press]}]
+(defn tag-view [tag]
   [react/touchable-highlight {:style {:border-radius 5
                                       :margin 2
                                       :padding 4
@@ -234,39 +225,52 @@
                                       :justify-content :center
                                       :align-items :center
                                       :align-content :center}
-                              :on-press on-press}
+                              :on-press (fn [arg]
+                                          (let [right-click? (= "right" (.-button (.-nativeEvent arg)))]
+                                            (when right-click?
+                                              (popup-menu/show-desktop-menu
+                                               (popup-menu/get-chat-menu-items true true tag #_#_#_group-chat public? chat-id)))))}
    [react/text {:style {:font-size 9
                         :color colors/white}
                 :font :medium} tag]])
 
 (defn messages-view
-  [{:keys [children-fn parent-fn parent next-sibling-fn previous-sibling-fn next-siblings previous-siblings parent children message-id content] :as message-obj} reply?]
-  [react/view {:flex 1
-               :flex-direction :row}
-   (when previous-sibling-fn
-     [button/primary-button {:style {:flex 1}
-                             :on-press previous-sibling-fn}
-      (str "Previous " (count previous-siblings))])
+  [{:keys [tags chat-id children-fn parent-fn parent next-sibling-fn previous-sibling-fn next-siblings previous-siblings parent children message-id content] :as message-obj}]
+  [react/view {:flex 1}
+   [react/view {:flex 0.2
+                :flex-direction :row}
+    [button/primary-button {:style {:flex 1}
+                            :disabled? (if previous-sibling-fn false true)
+                            :on-press previous-sibling-fn}
+     (str "Previous " (count previous-siblings))]
+    [react/view {:flex-direction :column
+
+                 :flex 1}
+     (if parent
+       [react/touchable-highlight {:on-press parent-fn
+                                   :style {:flex 1}}
+        [message (:text (:content parent)) false parent]]
+       [react/view {:flex 1}])
+     [react/view {:flex-direction :row
+                  :flex 1}
+      (for [tag tags]
+        ^{:key tag}
+        [tag-view tag])]]
+    [button/primary-button {:style {:flex 1}
+                            :disabled? (if next-sibling-fn false true)
+                            :on-press next-sibling-fn}
+     (str "Next " (count next-siblings))]]
    [react/view {:flex 1
                 :flex-direction :column}
-    (when parent
-      [message (:text (:content parent)) false parent])
-    (when parent-fn
-      [button/primary-button {:flex 1
-                              :on-press parent-fn} "Parent"])
-    [tag-view  (:chat-id content) {}]
+
     [react/view {:style {:flex 1}}
      ^{:key message-id}
      [message (:text content) false message-obj]]
-    [chat-text-input (:chat-id content) message-id]
+    [chat-text-input chat-id message-id]
     (when children-fn
       [button/primary-button {:flex 1
                               :on-press children-fn}
-       (str "see " (count children) " replies")])]
-   (when next-sibling-fn
-     [button/primary-button {:style {:flex 1}
-                             :on-press next-sibling-fn}
-      (str "Next " (count next-siblings))])])
+       (str "see " (count children) " replies")])]])
 
 (views/defview chat-view []
   (views/letsubs [message [:messages/current-message]]

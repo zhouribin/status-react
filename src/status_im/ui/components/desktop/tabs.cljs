@@ -52,7 +52,6 @@
 (views/defview tab [index content view-id active? count-subscription]
   (views/letsubs [cnt [count-subscription]]
     [react/touchable-highlight {:style    (merge tabs.styles/tab-container {:flex 1})
-                                :disabled active?
                                 :on-press #(re-frame/dispatch [:show-desktop-tab view-id])}
      [react/view
       [content active? cnt]]]))

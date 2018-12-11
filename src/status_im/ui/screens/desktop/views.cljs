@@ -29,6 +29,7 @@
                       (:desktop/new-one-to-one
                        :desktop/new-group-chat
                        :desktop/new-public-chat
+                       :desktop/new-message
                        :advanced-settings
                        :chat
                        :home

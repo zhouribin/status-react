@@ -12,6 +12,11 @@
    (get db :current-message-id)))
 
 (re-frame/reg-sub
+ :messages/reply
+ (fn [db]
+   (get db :reply)))
+
+(re-frame/reg-sub
  :messages/roots
  :<- [::messages]
  (fn [messages]
@@ -33,12 +38,20 @@
  :<- [:messages/roots]
  :<- [:messages/current-message-id]
  :<- [::messages]
- (fn [[roots current-message-id messages]]
-   (let [{:keys [parent children] :as message} (get messages current-message-id)
+ :<- [:account/public-key]
+ (fn [[roots current-message-id messages current-public-key]]
+   (let [{:keys [parent children chat-id message-type from] :as message} (get messages current-message-id)
          siblings  (or (:children (get messages parent))
                        roots)
          [previous-siblings [_ & next-siblings]] (split-with #(not= % current-message-id) (into #{} siblings))]
      (cond-> message
+       (= message-type :user-message)
+       (assoc :chat-id (if (= from current-public-key) chat-id from)
+              :tags ["private chat"])
+
+       (not= message-type :user-message)
+       (assoc :tags ["public chat" chat-id])
+
        parent
        (assoc :parent-fn (navigate-to parent)
               :parent (get messages parent))

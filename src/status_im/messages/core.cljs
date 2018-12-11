@@ -1,7 +1,14 @@
 (ns status-im.messages.core
   (:require [status-im.accounts.db :as accounts.db]
             [status-im.utils.fx :as fx]
-            [status-im.data-store.messages :as data-store]))
+            [status-im.data-store.messages :as data-store]
+            [status-im.ui.screens.navigation :as navigation]))
+
+(fx/defn new-message
+  [{:keys [db] :as cofx} chat-id]
+  (fx/merge cofx
+            {:db (assoc db :current-chat-id chat-id)}
+            (navigation/navigate-to-cofx :desktop/new-message {})))
 
 (fx/defn load-messages
   [{:keys [db smb-get-stored-messages]

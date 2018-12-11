@@ -30,6 +30,7 @@
              :messages  {}
              :current-message-id                 nil
              :current-chat-id                    nil
+             :reply                              false
              :selected-participants              #{}
              :discoveries                        {}
              :discover-search-tags               #{}
@@ -287,6 +288,7 @@
                                    :qr/current-qr-context
                                    ::messages
                                    ::current-message-id
+                                   ::reply
                                    :chat/chats
                                    :chat/current-chat-id
                                    :chat/chat-id

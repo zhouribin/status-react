@@ -6,7 +6,11 @@
 
 (fx/defn change-tab
   [{:keys [db]} tab-name]
-  {:db (assoc-in db [:desktop/desktop :tab-view-id] tab-name)})
+  (if (= :home tab-name)
+    {:db (-> db
+             (assoc-in [:desktop/desktop :tab-view-id] nil)
+             (assoc :view-id :home))}
+    {:db (assoc-in db [:desktop/desktop :tab-view-id] tab-name)}))
 
 (fx/defn navigate-to
   [{:keys [db] :as cofx} tab-name]
