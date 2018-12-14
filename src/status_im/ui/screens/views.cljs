@@ -30,12 +30,12 @@
             [status-im.ui.screens.wallet.main.views :as wallet.main]
             [status-im.ui.screens.wallet.collectibles.views :refer [collectibles-list]]
             [status-im.ui.screens.wallet.send.views :as send.views :refer [send-transaction send-transaction-modal]]
+            [status-im.ui.screens.wallet.send.views.amount :as send.views.amount]
             [status-im.ui.screens.wallet.sign-message.views :as sign-message]
             [status-im.ui.screens.wallet.choose-recipient.views :refer [choose-recipient]]
             [status-im.ui.screens.wallet.request.views :refer [wallet-request-contacts-list request-transaction send-transaction-request]]
             [status-im.ui.screens.wallet.components.views :as wallet.components]
             [status-im.ui.screens.wallet.onboarding.views :as wallet.onboarding]
-            [status-im.ui.screens.wallet.transaction-fee.views :as wallet.transaction-fee]
             [status-im.ui.screens.wallet.settings.views :as wallet-settings]
             [status-im.ui.screens.wallet.transactions.views :as wallet-transactions]
             [status-im.ui.screens.wallet.transaction-sent.views :refer [transaction-sent transaction-sent-modal]]
@@ -191,10 +191,7 @@
           [:modal send-transaction-modal]
 
           :wallet-transaction-sent
-          [:modal transaction-sent-modal]
-
-          :wallet-transaction-fee
-          [:modal wallet.transaction-fee/transaction-fee]}
+          [:modal transaction-sent-modal]}
          :config
          {:headerMode       "none"
           :initialRouteName "wallet-send-transaction-modal"}}
@@ -208,10 +205,7 @@
           [:modal send-transaction-modal]
 
           :wallet-transaction-sent
-          [:modal transaction-sent-modal]
-
-          :wallet-transaction-fee
-          [:modal wallet.transaction-fee/transaction-fee]}
+          [:modal transaction-sent-modal]}
          :config
          {:headerMode       "none"
           :initialRouteName "wallet-onboarding-setup-modal"}}
@@ -237,8 +231,8 @@
                                                     :wallet-transaction-sent transaction-sent
                                                     :recipient-qr-code       recipient-qr-code
                                                     :wallet-choose-amount    send.views/choose-amount-token
-                                                    :wallet-choose-asset     send.views/choose-asset
-                                                    :wallet-txn-overview     send.views/txn-overview
+                                                    :wallet-choose-asset     send.views.amount/choose-asset
+                                                    :wallet-txn-overview     send.views/transaction-overview
                                                     :wallet-send-assets      wallet.components/send-assets}
                                           :config  {:headerMode "none"}}
 
@@ -265,10 +259,7 @@
                                                      [:modal send-transaction-modal]
 
                                                      :wallet-transaction-sent
-                                                     [:modal transaction-sent-modal]
-
-                                                     :wallet-transaction-fee
-                                                     [:modal wallet.transaction-fee/transaction-fee]})
+                                                     [:modal transaction-sent-modal]})
                                      {:headerMode       "none"
                                       :initialRouteName "wallet-send-transaction-modal"})}
 
@@ -281,21 +272,13 @@
                                                      [:modal send-transaction-modal]
 
                                                      :wallet-transaction-sent
-                                                     [:modal transaction-sent-modal]
-
-                                                     :wallet-transaction-fee
-                                                     [:modal wallet.transaction-fee/transaction-fee]})
+                                                     [:modal transaction-sent-modal]})
                                      {:headerMode       "none"
                                       :initialRouteName "wallet-send-modal-stack-with-onboarding"})}
 
        :wallet-settings-assets
        {:screen (nav-reagent/stack-screen
                  (wrap-modal :wallet-settings-assets wallet-settings/manage-assets))}
-
-       :wallet-transaction-fee
-       {:screen (nav-reagent/stack-screen
-                 (wrap-modal :wallet-transaction-fee
-                             wallet.transaction-fee/transaction-fee))}
 
        :wallet-transactions-filter
        {:screen (nav-reagent/stack-screen
