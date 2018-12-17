@@ -345,4 +345,6 @@
 
 (fx/defn on-get-keys-error
   [{:keys [db]} error]
-  (log/debug "[hardwallet] get keys error: " error))
+  (log/debug "[hardwallet] get keys error: " error)
+  {:db (assoc-in db [:hardwallet :pin] {:status      :error
+                                        :error-label :t/pin-mismatch})})

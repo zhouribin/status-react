@@ -7,7 +7,9 @@
             [status-im.ui.components.styles :as components.styles]))
 
 (defview hardwallet-login []
-  (letsubs [pin [:hardwallet/login-pin]]
+  (letsubs [pin [:hardwallet/login-pin]
+            status [:hardwallet/pin-status]
+            error-label [:hardwallet/pin-error-label]]
     [react/keyboard-avoiding-view components.styles/flex
      [react/view styles/container
       [react/view styles/inner-container
@@ -16,5 +18,5 @@
                             :title-label       :t/enter-pin
                             :description-label :t/enter-pin-description
                             :step              :login
-                            :status            nil
-                            :error             nil}]]]]))
+                            :status            status
+                            :error-label       error-label}]]]]))
