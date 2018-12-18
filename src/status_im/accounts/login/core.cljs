@@ -185,18 +185,22 @@
         :on-accept           #(re-frame/dispatch
                                [:init.ui/account-data-reset-accepted address])}})))
 
-(fx/defn open-login [{:keys [db]} address photo-path name]
-  {:db (-> db
-           (update :accounts/login assoc
-                   :address address
-                   :photo-path photo-path
-                   :name name)
-           (update :accounts/login dissoc
-                   :error
-                   :password))
-   :keychain/can-save-user-password? nil
-   :keychain/get-user-password [address
-                                #(re-frame/dispatch [:accounts.login.callback/get-user-password-success %])]})
+(fx/defn open-login [{:keys [db] :as cofx} address photo-path name]
+  (let [keycard-account? (get-in db [:accounts/accounts address :keycard-instance-uid])]
+    (fx/merge cofx
+              {:db (-> db
+                       (update :accounts/login assoc
+                               :address address
+                               :photo-path photo-path
+                               :name name)
+                       (update :accounts/login dissoc
+                               :error
+                               :password))}
+              (if keycard-account?
+                (navigation/navigate-to-clean :hardwallet-login nil)
+                {:keychain/can-save-user-password? nil
+                 :keychain/get-user-password       [address
+                                                    #(re-frame/dispatch [:accounts.login.callback/get-user-password-success %])]}))))
 
 (fx/defn open-login-callback
   [{:keys [db] :as cofx} password]

@@ -150,14 +150,14 @@
     (when (and keycard-instance-uid
                keycard-account
                pairing)
-      (navigation/navigate-to-cofx cofx :hardwallet-login nil))))
+      (navigation/navigate-to-cofx cofx :hardwallet-login-pin nil))))
 
 (fx/defn on-card-connected
   [{:keys [db] :as cofx} data]
   (log/debug "[hardwallet] card connected " data)
   (let [return-to-step (get-in db [:hardwallet :return-to-step])
         setup-running? (get-in db [:hardwallet :setup-step])
-        try-login? (= (:view-id db) :accounts)]
+        try-login? (contains? #{:accounts :hardwallet-login} (:view-id db))]
     (fx/merge cofx
               {:db                              (cond-> db
                                                   return-to-step (assoc-in [:hardwallet :setup-step] return-to-step)
