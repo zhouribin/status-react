@@ -1,7 +1,8 @@
 (ns status-im.data-store.contacts
   (:require [goog.object :as object]
             [re-frame.core :as re-frame]
-            [status-im.data-store.realm.core :as core]))
+            [status-im.data-store.realm.core :as core]
+            [clojure.set :as clojure.set]))
 
 (defn- normalize-contact [contact]
   (-> contact
@@ -21,7 +22,7 @@
   (fn [realm]
     (core/create realm
                  :contact
-                 (dissoc contact :command :response :subscriptions)
+                 contact
                  true)))
 
 (defn save-contacts-tx
@@ -33,6 +34,33 @@
 
 (defn- get-contact-by-id [public-key realm]
   (core/single (core/get-by-field realm :contact :public-key public-key)))
+
+(defn get-blocked-user-data
+  [public-key]
+  {:messages (core/all-clj (core/get-by-field @core/account-realm
+                                              :message :from public-key)
+                           :message)
+   :chat (core/single-clj (core/get-by-field @core/account-realm
+                                             :chat :chat-id public-key)
+                          :chat)})
+
+(re-frame/reg-cofx
+ :data-store/get-blocked-user-data
+ (fn [cofx _]
+   (assoc cofx :get-blocked-user-data get-blocked-user-data)))
+
+(defn block-user-tx
+  "Returns tx function for deleting user messages"
+  [{:keys [public-key] :as contact}]
+  (fn [realm]
+    (core/create realm :contact contact true)
+    (let [chat (core/get-by-field realm :chat :chat-id public-key)
+          messages (core/get-by-field realm :message :from public-key)
+          statuses (core/get-by-field realm :user-status :public-key public-key)]
+      (when chat
+        (core/delete realm chat))
+      (core/delete realm messages)
+      (core/delete realm statuses))))
 
 (defn delete-contact-tx
   "Returns tx function for deleting contact"

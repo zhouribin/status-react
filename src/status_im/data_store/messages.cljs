@@ -93,7 +93,7 @@
       (core/delete realm message)
       (core/delete realm (core/get-by-field realm :user-status :message-id message-id)))))
 
-(defn delete-messages-tx
+(defn delete-chat-messages-tx
   "Returns tx function for deleting messages with user statuses for given chat-id"
   [chat-id]
   (fn [realm]
