@@ -64,7 +64,7 @@
       ;; We cap the clock value to a safe value in case the db has been polluted
       (assoc :last-clock-value (get-last-clock-value chat-id))
       (update :last-message-type keyword)
-      (update :last-message-content edn/read-string)))
+      (update :last-message-content utils/safe-read-message-content)))
 
 (re-frame/reg-cofx
  :data-store/all-chats
