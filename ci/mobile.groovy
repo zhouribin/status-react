@@ -34,7 +34,9 @@ def podUpdate() {
 }
 
 def prep(type = 'nightly') {
-  cmn.doGitRebase()
+  if (params.BUILD_TYPE != 'release') {
+    cmn.doGitRebase()
+  }
   /* ensure that we start from a known state */
   cmn.clean()
   /* select type of build */

@@ -48,7 +48,9 @@ def uploadArtifact(filename) {
 /* MAIN --------------------------------------------------*/
 
 def prepDeps() {
-  cmn.doGitRebase()
+  if (params.BUILD_TYPE != 'release') {
+    cmn.doGitRebase()
+  }
   cleanupAndDeps()
 }
 
