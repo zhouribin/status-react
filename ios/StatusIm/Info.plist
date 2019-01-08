@@ -10,6 +10,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>status-im</string>
+				<string>ethereum</string>
 			</array>
 		</dict>
 	</array>

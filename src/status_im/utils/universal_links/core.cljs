@@ -11,6 +11,7 @@
             [status-im.ui.screens.add-new.new-chat.db :as new-chat.db]
             [status-im.ui.screens.desktop.main.chat.events :as desktop.events]
             [status-im.ui.screens.navigation :as navigation]
+            [status-im.utils.ethereum.eip681 :as eip681]
             [status-im.utils.config :as config]
             [status-im.utils.fx :as fx]
             [taoensso.timbre :as log]
@@ -71,7 +72,7 @@
       (navigation/navigate-to-cofx (assoc-in cofx [:db :contacts/identity] public-key) :profile nil))))
 
 (fx/defn handle-extension [cofx url]
-  (log/info "universal-links: handling url profile" url)
+  (log/info "universal-links: handling extension" url)
   (extensions.registry/load cofx url false))
 
 (defn handle-not-found [full-url]
@@ -93,6 +94,9 @@
 
     (spec/valid? :global/public-key (match-url url profile-regex))
     (handle-view-profile cofx (match-url url profile-regex))
+
+    (match-url url browse-regex)
+    (handle-browse cofx (match-url url browse-regex))
 
     (match-url url browse-regex)
     (handle-browse cofx (match-url url browse-regex))
