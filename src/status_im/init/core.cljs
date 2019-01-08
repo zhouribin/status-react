@@ -80,9 +80,6 @@
              :notifications/handle-initial-push-notification nil
              :network/listen-to-network-status               nil
              :network/listen-to-connection-status            nil
-             :hardwallet/check-nfc-support                   nil
-             :hardwallet/check-nfc-enabled                   nil
-             :hardwallet/start-module                        nil
              :hardwallet/register-card-events                nil}
             (initialize-keychain)))
 

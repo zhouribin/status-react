@@ -150,6 +150,12 @@
               (when setup-running?
                 (navigation/navigate-to-cofx :hardwallet-connect nil)))))
 
+(defn on-card-did-init []
+  (log/debug "[hardwallet] card did init")
+  {:hardwallet/check-nfc-support nil
+   :hardwallet/check-nfc-enabled nil
+   :hardwallet/start-module      nil})
+
 (fx/defn load-preparing-screen
   [{:keys [db]}]
   {:db       (assoc-in db [:hardwallet :setup-step] :preparing)

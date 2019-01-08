@@ -868,6 +868,11 @@
    (hardwallet/on-card-disconnected cofx data)))
 
 (handlers/register-handler-fx
+ :hardwallet.callback/on-card-did-init
+ (fn [cofx _]
+   (hardwallet/on-card-did-init)))
+
+(handlers/register-handler-fx
  :hardwallet.callback/on-install-applet-and-init-card-success
  (fn [cofx [_ secrets]]
    (hardwallet/on-install-applet-and-init-card-success cofx secrets)))
