@@ -3,9 +3,13 @@ cmn = load 'ci/common.groovy'
 def bundle(type = 'nightly') {
   /* Disable Gradle Daemon https://stackoverflow.com/questions/38710327/jenkins-builds-fail-using-the-gradle-daemon */
   def gradleOpt = "-PbuildUrl='${currentBuild.absoluteUrl}' -Dorg.gradle.daemon=false "
-  if (type == 'release') {
+
+  if (type == 'pr') { /* PR builds shouldn't replace normal releases */
+    env.STATUS_APP_NAME = 'im.status.ethereum.pr'
+  } else if (type == 'release') {
     gradleOpt += "-PreleaseVersion='${cmn.version()}'"
   }
+
   dir('android') {
     withCredentials([
       string(

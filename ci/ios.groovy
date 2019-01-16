@@ -19,6 +19,10 @@ def bundle(type) {
   plutil('CFBundleShortVersionString', cmn.version())
   plutil('CFBundleVersion', cmn.genBuildNumber())
   plutil('CFBundleBuildUrl', currentBuild.absoluteUrl)
+  if (type == 'pr') { /* PR builds shouldn't replace normal releases */
+    env.BUNDLE_ID_SUFFIX = '.pr'
+    //plutil('CFBundleIdentifier', 'im.status.ethereum.pr')
+  }
   /* the dir might not exist */
   sh 'mkdir -p status-e2e'
   /* build the actual app */
