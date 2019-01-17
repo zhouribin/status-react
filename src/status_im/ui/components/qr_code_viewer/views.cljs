@@ -5,7 +5,9 @@
             [status-im.ui.components.button.view :as button]
             [status-im.ui.components.list-selection :as list-selection]
             [status-im.ui.components.qr-code-viewer.styles :as styles]
+            [status-im.ui.screens.profile.ttt.views :as ttt]
             [status-im.ui.components.react :as react]
+            [taoensso.timbre :as log]
             [status-im.i18n :as i18n]))
 
 (defn qr-code [props]
@@ -15,8 +17,14 @@
 
 (defn qr-code-viewer [{:keys [style hint-style footer-style footer-button value hint legend]}]
   (if value
-    (let [{:keys [width]} @(re-frame/subscribe [:dimensions/window])]
+    (let [{:keys [width]} @(re-frame/subscribe [:dimensions/window])
+          snt-amount @(re-frame/subscribe [:get-in [:my-profile/tribute-to-talk :snt-amount]])
+          _ (log/debug "### snt-amount" snt-amount)]
       [react/view {:style (merge styles/qr-code style)}
+
+       (when snt-amount
+         [react/view {:style {:margin-horizontal 16}}
+          [ttt/ttt-enabled-note]])
        (when width
          (let [size (int (min width styles/qr-code-max-width))]
            [react/view {:style               (styles/qr-code-container size)

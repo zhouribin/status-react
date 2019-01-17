@@ -230,6 +230,60 @@
      (when advanced?
        [advanced-settings params on-show])]))
 
+(defview share-profile []
+  (letsubs [{:keys [public-key photo-path] :as current-account} [:account/account]]
+    [react/touchable-highlight
+     {:on-press            #(re-frame/dispatch [:navigate-to :profile-qr-viewer
+                                                {:contact current-account
+                                                 :source  :public-key
+                                                 :value   public-key}])
+      :accessibility-label :share-my-profile-button}
+     [react/view {:style styles/profile-entry-container}
+      [react/view {:style {:flex-direction :row :align-items :center}}
+       [react/view {:style styles/profile-entry-icon}
+        [vector-icons/icon :icons/share {:color colors/blue}]]
+       [react/view  {:style {:margin-left 16 :align-items :center}}
+        [react/text {:style styles/profile-entry-text}
+         (i18n/label :t/share-my-profile)]]]
+      [react/view {:style styles/profile-entry-arrow}
+       [vector-icons/icon :icons/forward {:color colors/gray}]]]]))
+
+(defview tribute-to-talk []
+  (letsubs [{:keys [public-key] :as current-account} [:account/account]
+            {:keys [snt-amount]} [:my-profile/tribute-to-talk]]
+    [react/touchable-highlight
+     {:on-press            #(re-frame/dispatch [:navigate-to :tribute-to-talk])
+      :accessibility-label :share-my-profile-button}
+     [react/view {:style styles/profile-entry-container}
+      [react/view {:style {:flex-direction :row :flex 1 :align-items :center}}
+       [react/view {:style styles/profile-entry-icon}
+        [vector-icons/icon :icons/tribute-to-talk {:color colors/blue}]]
+       [react/view {:style {:margin-left 16 :flex 1}}
+        [react/view {:style {:flex-direction :row}}
+         (when-not snt-amount
+           [react/view {:style {:background-color colors/blue
+                                :border-radius 4
+                                :padding-horizontal 4
+                                :margin-right 4}}
+            [react/text {:style {:color colors/white
+                                 :font-weight :bold}}
+             (string/upper-case (i18n/label :t/new))]])
+         [react/text {:style styles/profile-entry-text}
+          (i18n/label :t/tribute-to-talk)]]
+        (when-not snt-amount
+          [react/text {:style styles/profile-entry-subtext}
+           (i18n/label :t/tribute-to-talk-desc)])]]
+      [react/view {:style styles/profile-entry-arrow}
+       [react/view {:style {:flex-direction :row}}
+        (when snt-amount
+          [react/text {:style {:color colors/gray
+                               :text-align-vertical :center
+                               :font-size 15 :margin-right 16}
+                       :number-of-lines 1
+                       :ellipsize-mode :middle}
+           (str snt-amount " SNT")])
+        [vector-icons/icon :icons/forward {:color colors/gray}]]]]]))
+
 (defview my-profile []
   (letsubs [{:keys [public-key photo-path] :as current-account} [:account/account]
             editing?        [:get :my-profile/editing?]
@@ -264,15 +318,8 @@
                                    (profile-icon-options-ext)
                                    profile-icon-options)
            :on-change-text-event :my-profile/update-name}]]
-        [react/view (merge action-button.styles/actions-list
-                           styles/share-contact-code-container)
-         [button/secondary-button {:on-press            #(re-frame/dispatch [:navigate-to :profile-qr-viewer
-                                                                             {:contact (dissoc current-account :mnemonic)
-                                                                              :source  :public-key
-                                                                              :value   public-key}])
-                                   :style               styles/share-contact-code-button
-                                   :accessibility-label :share-my-profile-button}
-          (i18n/label :t/share-my-profile)]]
+        [share-profile]
+        [tribute-to-talk]
         [react/view styles/my-profile-info-container
          [my-profile-settings current-account shown-account currency (nil? login-data)]]
         (when (nil? login-data)
