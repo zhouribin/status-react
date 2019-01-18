@@ -23,19 +23,19 @@
               :action              #(re-frame/dispatch [:contact.ui/add-to-contact-pressed public-key])
               :accessibility-label :add-to-contacts-button}]
             [{:label               (i18n/label :t/in-contacts)
-              :icon                :icons/in-contacts
+              :icon                :main-icons/in-contacts
               :disabled?           true
               :accessibility-label :in-contacts-button}])
           [{:label               (i18n/label :t/send-message)
-            :icon                :icons/chats
+            :icon                :main-icons/message
             :action              #(re-frame/dispatch [:contact.ui/send-message-pressed {:public-key public-key}])
             :accessibility-label :start-conversation-button}
            {:label               (i18n/label :t/send-transaction)
-            :icon                :icons/arrow-right
+            :icon                :main-icons/send
             :action              #(re-frame/dispatch [:profile/send-transaction public-key])
             :accessibility-label :send-transaction-button}
            {:label               (i18n/label :t/share-profile-link)
-            :icon                :icons/share
+            :icon                :main-icons/share
             :action              #(re-frame/dispatch [:profile/share-profile-link public-key])
             :accessibility-label :share-profile-link}]))
 
@@ -65,7 +65,7 @@
    {:label               (if blocked?
                            (i18n/label :t/unblock-contact)
                            (i18n/label :t/block-contact))
-    :icon                :icons/cancel
+    :icon                :main-icons/cancel
     :action              (if blocked?
                            #(re-frame/dispatch [:contact.ui/unblock-contact-pressed public-key])
                            #(re-frame/dispatch [:contact.ui/block-contact-pressed public-key]))
