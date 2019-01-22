@@ -3,6 +3,7 @@
             [cognitect.transit :as transit]
             [clojure.set :as set]
             [clojure.string :as string]
+            [status-im.constants :as constants]
             [status-im.utils.random :as random]))
 
 (def reader (transit/reader :json))
@@ -127,3 +128,42 @@
                                        (contains? % :BQX) (conj :ETHOS)))
             updated      (serialize new-settings)]
         (aset account "settings" updated)))))
+
+;; transform inactive legacy network values into the current ones
+(defn transition-rpc-url [rpc-url]
+  (case rpc-url
+    "https://mainnet.infura.io/z6GCTmjdP3FETEJmMBI4"
+    (get-in constants/mainnet-networks ["mainnet_rpc" :config :UpstreamConfig :URL])
+    "https://ropsten.infura.io/z6GCTmjdP3FETEJmMBI4"
+    (get-in constants/testnet-networks ["testnet_rpc" :config :UpstreamConfig :URL])
+    "https://rinkeby.infura.io/z6GCTmjdP3FETEJmMBI4"
+    (get-in constants/testnet-networks ["rinkeby_rpc" :config :UpstreamConfig :URL])
+    rpc-url))
+
+(defn- update-infura-project-id! [network-js]
+  (let [old-config (js->clj
+                    (.parse js/JSON
+                            (aget network-js "config")))]
+    ;; we only transition rpc networks
+    (when (get-in old-config ["UpstreamConfig" "Enabled"])
+      (let [new-config (update-in
+                        old-config
+                        ["UpstreamConfig" "URL"]
+                        transition-rpc-url)]
+        (aset network-js
+              "config"
+              (.stringify js/JSON (clj->js new-config)))))))
+
+(defn- update-infura-project-ids! [networks-js]
+  (dotimes [i (.-length networks-js)]
+    (let [network-js (aget networks-js i)]
+      (update-infura-project-id! network-js))))
+
+(defn v18 [old-realm new-realm]
+  (log/debug "migrating accounts database v19: " old-realm new-realm)
+  (let [accounts (.objects new-realm "account")]
+    (dotimes [i (.-length accounts)]
+      (let [account  (aget accounts i)
+            networks (aget account "networks")]
+        (update-infura-project-ids! networks)
+        (aset account "networks" networks)))))
