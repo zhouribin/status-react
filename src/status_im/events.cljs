@@ -1523,6 +1523,16 @@
    {:db (assoc (:db cofx) :initial-props initial-props)}))
 
 (handlers/register-handler-fx
+ :pairing.callback/contact-code-published
+ (fn [cofx _]
+   (pairing/contact-code-published cofx)))
+
+(handlers/register-handler-fx
+ :pairing.callback/contact-code-publishing-failed
+ (fn [cofx _]
+   (pairing/contact-code-publishing-failed cofx)))
+
+(handlers/register-handler-fx
  :pairing.ui/enable-installation-pressed
  (fn [cofx [_ installation-id]]
    (pairing/enable-fx cofx installation-id)))

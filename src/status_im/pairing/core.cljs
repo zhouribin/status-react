@@ -1,23 +1,99 @@
 (ns status-im.pairing.core
   (:require [re-frame.core :as re-frame]
+            [re-frame.db]
             [clojure.string :as string]
             [status-im.i18n :as i18n]
+            [taoensso.timbre :as log]
             [status-im.utils.fx :as fx]
             [status-im.ui.screens.navigation :as navigation]
+            [status-im.utils.async :as async-util]
+            [status-im.utils.datetime :as datetime]
+            [status-im.transport.shh :as shh]
             [status-im.utils.config :as config]
             [status-im.utils.platform :as utils.platform]
             [status-im.chat.models :as models.chat]
+            [status-im.transport.message.public-chat :as transport.public-chat]
             [status-im.accounts.db :as accounts.db]
             [status-im.transport.message.protocol :as protocol]
             [status-im.data-store.installations :as data-store.installations]
             [status-im.native-module.core :as native-module]
             [status-im.utils.identicon :as identicon]
+            [status-im.contact.core :as contact]
             [status-im.data-store.contacts :as data-store.contacts]
             [status-im.data-store.accounts :as data-store.accounts]
             [status-im.transport.message.pairing :as transport.pairing]))
 
 (def contact-batch-n 4)
 (def max-installations 2)
+
+(defonce polling-executor (atom nil))
+(def sync-interval-ms 15000)
+(def sync-timeout-ms  20000)
+(def publish-contact-code-interval (* 60 1000))
+
+(defn- publish-contact-code [web3 chat-id sig done-fn]
+  (log/debug "publishing contact code")
+  (let [peers-count (:peers-count @re-frame.db/app-db)
+        now (datetime/timestamp)
+        last-published (get-in
+                        @re-frame.db/app-db
+                        [:account/account :last-published-contact-code])]
+    (when (and (pos? peers-count)
+               (< publish-contact-code-interval
+                  (- now last-published)))
+
+      (log/debug "actually publishing contact code")
+      (let [message {:chat chat-id
+                     :sig  sig
+                     :payload ""}]
+        (shh/send-public-message!
+         web3
+         message
+         [:pairing.callback/contact-code-published]
+         [:pairing.callback/contact-code-publishing-failed])
+        (done-fn)))))
+
+(defn- start-publisher! [web3 chat-id public-key]
+  (when @polling-executor
+    (async-util/async-periodic-stop! @polling-executor))
+  (reset! polling-executor
+          (async-util/async-periodic-exec
+           (partial publish-contact-code web3 chat-id public-key)
+           sync-interval-ms
+           sync-timeout-ms)))
+
+(re-frame/reg-fx ::start-publisher
+                 (fn [[web3 chat-id public-key]]
+                   (start-publisher! web3 chat-id public-key)))
+
+(fx/defn contact-code-published [{:keys [now db] :as cofx}]
+  (let [new-account (assoc (:account/account db)
+                           :last-published-contact-code
+                           now)]
+    {:db (assoc db :account/account new-account)
+     :data-store/base-tx [(data-store.accounts/save-account-tx new-account)]}))
+
+(fx/defn contact-code-publishing-failed [cofx]
+  (log/warn "failed to publish contact-code"))
+
+(fx/defn start-publisher [{:keys [web3] :as cofx}]
+  (let [current-public-key (accounts.db/current-public-key cofx)
+        chat-id  (str current-public-key "contact-code")]
+    (fx/merge
+     cofx
+     {::start-publisher [web3 chat-id current-public-key]}
+     (transport.public-chat/join-public-chat chat-id))))
+
+(fx/defn stop-publisher [cofx]
+  {::stop-publisher []})
+
+(re-frame/reg-fx
+ ::stop-publisher
+ #(when @polling-executor
+    (async-util/async-periodic-stop! @polling-executor)))
+
+(fx/defn stop-sync [_]
+  {::stop-sync-transactions nil})
 
 (defn- parse-response [response-js]
   (-> response-js
@@ -233,16 +309,17 @@
   (let [dev-mode? (get-in db [:account/account :dev-mode?])]
     (when (and (config/pairing-enabled? dev-mode?)
                (= sender (accounts.db/current-public-key cofx)))
-      (let [new-contacts (merge-contacts (:contacts/contacts db) (ensure-photo-path contacts))
-            new-account  (merge-account (:account/account db) account)]
-        (fx/merge cofx
-                  {:db                 (assoc db
-                                              :contacts/contacts new-contacts
-                                              :account/account new-account)
-                   :data-store/base-tx [(data-store.accounts/save-account-tx new-account)]
-                   :data-store/tx      [(data-store.contacts/save-contacts-tx (vals new-contacts))]}
-                  #(when (:public? chat)
-                     (models.chat/start-public-chat % (:chat-id chat) {:dont-navigate? true})))))))
+      (let [new-contacts (vals (merge-contacts (:contacts/contacts db) (ensure-photo-path contacts)))
+            new-account  (merge-account (:account/account db) account)
+            contacts-fx  (mapv contact/upsert-contact new-contacts)]
+        (apply fx/merge
+               cofx
+               (concat
+                [{:db                 (assoc db :account/account new-account)
+                  :data-store/base-tx [(data-store.accounts/save-account-tx new-account)]}
+                 #(when (:public? chat)
+                    (models.chat/start-public-chat % (:chat-id chat) {:dont-navigate? true}))]
+                contacts-fx))))))
 
 (defn handle-pair-installation [{:keys [db] :as cofx} {:keys [name installation-id device-type]} timestamp sender]
   (let [dev-mode? (get-in db [:account/account :dev-mode?])]
