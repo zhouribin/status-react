@@ -111,12 +111,6 @@ pipeline {
             build('misc/status.im')
             break
           case 'release':
-            build(
-              job: 'misc/cn.status.im',
-              parameters: [
-                [name: 'APK_URL', value: apkUrl, $class: 'StringParameterValue'],
-              ]
-            )
             break
         }
       } }
