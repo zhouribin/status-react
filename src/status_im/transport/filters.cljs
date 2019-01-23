@@ -5,7 +5,11 @@
             [status-im.transport.utils :as utils]
             [status-im.utils.fx :as fx]
             [status-im.utils.handlers :as handlers]
+            [status-im.transport.partitioned-topic :as transport.topic]
             [taoensso.timbre :as log]))
+
+(defn- receive-message [chat-id js-error js-message]
+  (re-frame/dispatch [:transport/messages-received js-error js-message chat-id]))
 
 (defn remove-filter! [{:keys [chat-id filter success-callback?]
                        :or   {success-callback? true}}]
@@ -16,16 +20,6 @@
                      (when success-callback?
                        (re-frame/dispatch [:shh.callback/filter-removed chat-id])))))
   (log/debug :stop-watching filter))
-
-(defn add-filter!
-  [web3 {:keys [topics] :as options} callback chat-id]
-  (let [options  (assoc options :allowP2P true)]
-    (log/debug :add-filter options)
-    (when-let [filter (.newMessageFilter (utils/shh web3)
-                                         (clj->js options)
-                                         callback
-                                         #(log/warn :add-filter-error (.stringify js/JSON (clj->js options)) %))]
-      (re-frame/dispatch [:shh.callback/filter-added (first topics) chat-id filter]))))
 
 (defn add-filters!
   [web3 filters]
@@ -46,15 +40,6 @@
      filters)]))
 
 (re-frame/reg-fx
- :shh/add-filter
- (fn [{:keys [web3 sym-key-id topic chat-id]}]
-   (let [params   {:topics [topic]
-                   :symKeyID sym-key-id}
-         callback (fn [js-error js-message]
-                    (re-frame/dispatch [:transport/messages-received js-error js-message chat-id]))]
-     (add-filter! web3 params callback chat-id))))
-
-(re-frame/reg-fx
  :shh/add-filters
  (fn [{:keys [web3 filters]}]
    (log/debug "PERF" :shh/add-filters)
@@ -64,9 +49,7 @@
             (conj acc
                   {:options  {:topics   [topic]
                               :symKeyID sym-key-id}
-                   :callback (fn [js-error js-message]
-                               (re-frame/dispatch [:transport/messages-received
-                                                   js-error js-message chat-id]))
+                   :callback (partial receive-message chat-id)
                    :chat-id  chat-id}))
           []
           filters)]
@@ -75,26 +58,19 @@
 (re-frame/reg-fx
  :shh/add-discovery-filters
  (fn [{:keys [web3 private-key-id topics]}]
-   (let [params   {:topics (mapv :topic topics)
-                   :privateKeyID private-key-id}
-         callback (fn [js-error js-message]
-                    (re-frame/dispatch [:transport/messages-received js-error js-message]))]
-     (doseq [{:keys [chat-id topic]} topics]
-       (add-filter! web3 params callback chat-id)))))
-
-(handlers/register-handler-fx
- :shh.callback/filter-added
- (fn [{:keys [db] :as cofx} [_ topic chat-id filter]]
-   (fx/merge cofx
-             {:db (assoc-in db [:transport/filters chat-id] filter)}
-             (mailserver/reset-request-to)
-             (mailserver/upsert-mailserver-topic {:topic topic
-                                                  :chat-id chat-id})
-             (mailserver/process-next-messages-request))))
+   (let [params   {:privateKeyID private-key-id}]
+     (add-filters!
+      web3
+      (map (fn [{:keys [chat-id topic callback minPow]}]
+             {:options  (cond-> (assoc params :topics [topic])
+                          minPow
+                          (assoc :minPow minPow))
+              :callback (or callback (partial receive-message chat-id))
+              :chat-id  chat-id}) topics)))))
 
 (fx/defn add-filter
   [{:keys [db]} chat-id filter]
-  {:db (assoc-in db [:transport/filters chat-id] filter)})
+  {:db (update-in db [:transport/filters chat-id] conj filter)})
 
 (handlers/register-handler-fx
  :shh.callback/filters-added
@@ -125,10 +101,10 @@
 
 (re-frame/reg-fx
  :shh/remove-filters
- (fn [[filters callback]]
+ (fn [{:keys [filters callback]}]
    (doseq [[chat-id filter] filters]
      (when filter (remove-filter!
                    {:chat-id          chat-id
                     :filter           filter
                     :success-callback false})))
-   (callback)))
+   (when callback (callback))))
