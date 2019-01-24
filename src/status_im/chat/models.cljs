@@ -12,6 +12,7 @@
             [status-im.ui.components.desktop.events :as desktop.events]
             [status-im.ui.components.react :as react]
             [status-im.ui.screens.navigation :as navigation]
+            [status-im.contact-code.core :as contact-code]
             [status-im.utils.clocks :as utils.clocks]
             [status-im.utils.fx :as fx]
             [status-im.utils.gfycat.core :as gfycat]
@@ -219,6 +220,8 @@
   (fx/merge cofx
             {:db (-> (assoc db :current-chat-id chat-id)
                      (set-chat-ui-props {:validation-messages nil}))}
+            #(when-not (get-in db [:chats chat-id :group-chat])
+               (contact-code/load-fx % chat-id))
             (mark-messages-seen chat-id)))
 
 (fx/defn navigate-to-chat

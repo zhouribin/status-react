@@ -21,7 +21,7 @@
   (fn [realm]
     (core/create realm
                  :contact
-                 (dissoc contact :command :response :subscriptions)
+                 (dissoc contact :command :response :subscriptions :contact-code)
                  true)))
 
 (defn save-contacts-tx

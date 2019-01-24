@@ -154,8 +154,7 @@
     (call-module #(.extractGroupMembershipSignatures status signature-pairs callback))))
 
 (defn sign-group-membership [content callback]
-  (when status
-    (call-module #(.signGroupMembership status content callback))))
+  (when status (call-module #(.signGroupMembership status content callback))))
 
 (defn enable-installation [installation-id callback]
   (when status
@@ -164,6 +163,10 @@
 (defn disable-installation [installation-id callback]
   (when status
     (call-module #(.disableInstallation status installation-id callback))))
+
+(defn get-contact-code [public-key callback]
+  (when status
+    (call-module #(.getContactCode status public-key callback))))
 
 (defn is24Hour []
   (when status

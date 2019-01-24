@@ -131,8 +131,9 @@
        (i18n/label :t/join-group-chat-description {:username (:name contact)
                                                    :group-name name})]]]))
 
-(defview messages-view [{:keys [group-chat] :as chat} modal?]
-  (letsubs [messages           [:chats/current-chat-messages-stream]
+(defview messages-view [{:keys [group-chat chat-id] :as chat} modal?]
+  (letsubs [contact            [:contacts/contact-by-identity chat-id]
+            messages           [:chats/current-chat-messages-stream]
             current-public-key [:account/public-key]]
     {:component-did-mount
      (fn [args]
@@ -194,7 +195,7 @@
          [messages-view-wrapper modal?]]
         [react/view style/message-view-preview])
       (when (show-input-container? my-public-key current-chat)
-        [input/container])
+        [input/contact-request])
       (when show-bottom-info?
         [bottom-info/bottom-info-view])
       (when show-message-options?

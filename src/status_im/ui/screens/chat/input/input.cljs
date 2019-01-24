@@ -20,15 +20,15 @@
             [status-im.utils.gfycat.core :as gfycat]
             [status-im.utils.utils :as utils]))
 
-(defview basic-text-input [{:keys [set-container-width-fn height single-line-input?]}]
-  (letsubs [{:keys [input-text]} [:chats/current-chat]
+(defview basic-text-input [{:keys [chat set-container-width-fn height single-line-input?]}]
+  (letsubs [contact-code         [:contact-codes/contact-code (:chat-id chat)]
             cooldown-enabled?    [:chats/cooldown-enabled?]]
     [react/text-input
      (merge
       {:ref                    #(when % (re-frame/dispatch [:chat.ui/set-chat-ui-props {:input-ref %}]))
        :accessibility-label    :chat-message-input
        :multiline              (not single-line-input?)
-       :default-value          (or input-text "")
+       :default-value          (or (:input-text chat) "")
        :editable               (not cooldown-enabled?)
        :blur-on-submit         false
        :on-focus               #(re-frame/dispatch [:chat.ui/set-chat-ui-props {:input-focused?    true
@@ -46,7 +46,9 @@
        :placeholder-text-color colors/gray
        :auto-capitalize        :sentences}
       (when cooldown-enabled?
-        {:placeholder (i18n/label :cooldown/text-input-disabled)}))]))
+        {:placeholder (i18n/label :cooldown/text-input-disabled)})
+      (when-not contact-code
+        {:placeholder (i18n/label :type-a-contact-request)}))]))
 
 (defview invisible-input [{:keys [set-layout-width-fn value]}]
   (letsubs [{:keys [input-text]} [:chats/current-chat]]
@@ -82,7 +84,8 @@
     nil))
 
 (defview input-view [{:keys [single-line-input?]}]
-  (letsubs [command [:chats/selected-chat-command]]
+  (letsubs [chat    [:chats/current-chat]
+            command [:chats/selected-chat-command]]
     (let [component              (reagent/current-component)
           set-layout-width-fn    #(reagent/set-state component {:width %})
           set-container-width-fn #(reagent/set-state component {:container-width %})
@@ -91,6 +94,7 @@
        [react/animated-view {:style style/input-animated}
         [invisible-input {:set-layout-width-fn set-layout-width-fn}]
         [basic-text-input {:set-container-width-fn set-container-width-fn
+                           :chat                   chat
                            :single-line-input?     single-line-input?}]
         [input-helper {:width width}]]])))
 
@@ -150,4 +154,8 @@
    [parameter-box/parameter-box-view]
    [suggestions/suggestions-view]
    [validation-messages/validation-messages-view]
+   [input-container]])
+
+(defn contact-request []
+  [react/view
    [input-container]])
