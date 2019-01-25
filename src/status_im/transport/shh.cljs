@@ -67,22 +67,24 @@
         (log/debug :shh/post-success))
       (re-frame/dispatch [error-event err resp]))))
 
+(defn send-direct-message! [web3 direct-message success-event error-event count]
+  (.. web3
+      -shh
+      (sendDirectMessage
+       (clj->js (update direct-message :payload (comp transport.utils/from-utf8
+                                                      transit/serialize)))
+       (handle-response success-event error-event count))))
+
 (re-frame/reg-fx
  :shh/send-direct-message
  (fn [post-calls]
    (doseq [{:keys [web3 payload src dst success-event error-event]
             :or   {error-event :transport/send-status-message-error}} post-calls]
-     (let [direct-message (clj->js {:pubKey dst
-                                    :sig src
-                                    :chat constants/contact-discovery
-                                    :payload (-> payload
-                                                 transit/serialize
-                                                 transport.utils/from-utf8)})]
-       (.. web3
-           -shh
-           (sendDirectMessage
-            direct-message
-            (handle-response success-event error-event 1)))))))
+     (let [direct-message {:pubKey dst
+                           :sig src
+                           :chat constants/contact-discovery
+                           :payload payload}]
+       (send-direct-message! web3 direct-message success-event error-event 1)))))
 
 (re-frame/reg-fx
  :shh/send-pairing-message

@@ -151,6 +151,17 @@
    (accounts.update/account-update cofx {:mainnet-warning-shown? true} {})))
 
 (handlers/register-handler-fx
+ :accounts.update.callback/published
+ (fn [{:keys [now] :as cofx} _]
+   (accounts.update/account-update cofx {:last-updated now} {})))
+
+(handlers/register-handler-fx
+ :accounts.update.callback/failed-to-publish
+ (fn [{:keys [now] :as cofx} [_ message]]
+   (log/warn "failed to publish account update" message)
+   (accounts.update/account-update cofx {:last-updated now} {})))
+
+(handlers/register-handler-fx
  :accounts.ui/dev-mode-switched
  (fn [cofx [_ dev-mode?]]
    (accounts/switch-dev-mode cofx dev-mode?)))

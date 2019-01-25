@@ -6,6 +6,7 @@
             [status-im.data-store.transport :as transport-store]
             [status-im.mailserver.core :as mailserver]
             [status-im.transport.message.core :as message]
+            [status-im.accounts.update.publisher :as accounts.publisher]
             [status-im.transport.shh :as shh]
             [status-im.transport.utils :as transport.utils]
             [status-im.utils.fx :as fx]
@@ -41,6 +42,7 @@
                                         (assoc chat :chat-id chat-id)))
                                     (:transport/chats db))
                   :on-success #(re-frame/dispatch [::sym-keys-added %])}}
+                (accounts.publisher/start-fx)
                 (mailserver/connect-to-mailserver)
                 (message/resend-contact-messages [])))))
 
@@ -86,6 +88,9 @@
   It is necessary to remove the filters because status-go there isn't currently a logout feature in status-go
   to clean-up after logout. When logging out of account A and logging in account B, account B would receive
   account A messages without this."
-  [{:keys [db]} callback]
+  [{:keys [db] :as cofx} callback]
   (let [{:transport/keys [filters]} db]
-    {:shh/remove-filters [filters callback]}))
+    (fx/merge
+     cofx
+     {:shh/remove-filters [filters callback]}
+     (accounts.publisher/stop-fx))))
