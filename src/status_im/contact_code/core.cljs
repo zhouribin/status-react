@@ -12,6 +12,9 @@
       js/JSON.parse
       (js->clj :keywordize-keys true)))
 
+(fx/defn add-contact-code [{:keys [db]} chat-id contact-code]
+  {:db (assoc-in db [:contact-codes/contact-codes chat-id] contact-code)})
+
 (fx/defn load-fx [cofx chat-id]
   (when-not (get-in cofx [:db :contact-codes/contact-codes chat-id])
     {::load-contact-code chat-id}))
@@ -26,6 +29,8 @@
      (not (string/blank? code))
      (re-frame/dispatch [:contact-code.callback/contact-code-loaded chat-id code]))))
 
+(fx/defn handle-bundles-added [cofx {:keys [identity]}]
+  (add-contact-code cofx identity true))
 
 (re-frame/reg-fx
  ::load-contact-code
@@ -35,5 +40,5 @@
     (partial handle-get-contact-code-response chat-id))))
 
 
-(fx/defn loaded [{:keys [db]} chat-id contact-code]
-  {:db (assoc-in db [:contact-codes/contact-codes chat-id] contact-code)})
+(fx/defn loaded [cofx chat-id contact-code]
+  (add-contact-code cofx chat-id true))

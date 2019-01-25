@@ -11,6 +11,7 @@
             [status-im.utils.ethereum.core :as ethereum]
             [status-im.utils.datetime :as time]
             [status-im.transport.message.group-chat :as message.group-chat]
+            [status-im.contact.core :as contact]
             [status-im.chat.models :as chat-model]
             [status-im.chat.models.loading :as chat-loading]
             [status-im.chat.models.message-content :as message-content]
@@ -39,6 +40,11 @@
      {:chat-id              chat-id
       :membership-updates   (:membership-updates chat)
       :message              message})))
+
+(defn- wrap-contact-request
+  "Wrap a message in a contact request"
+  [cofx chat-id message]
+  (contact/build-contact-request cofx chat-id message))
 
 (defn- prepare-message
   [{:keys [content content-type] :as message} chat-id current-chat?]
@@ -354,9 +360,15 @@
 (fx/defn upsert-and-send [{:keys [now] :as cofx} {:keys [chat-id from] :as message}]
   (let [send-record     (protocol/map->Message (select-keys message transport-keys))
         old-message-id  (transport.utils/old-message-id send-record)
-        wrapped-record  (if (= (:message-type send-record) :group-user-message)
-                          (wrap-group-message cofx chat-id send-record)
-                          send-record)
+        wrapped-record  (cond
+                           (= (:message-type send-record) :group-user-message)
+                           (wrap-group-message cofx chat-id send-record)
+
+                           (= (:message-type send-record) :user-message)
+                           (wrap-contact-request cofx chat-id send-record)
+
+                           :else
+                           send-record)
         raw-payload     (transport.utils/from-utf8 (transit/serialize wrapped-record))
         message-id      (transport.utils/message-id from raw-payload)
         message-with-id (assoc message

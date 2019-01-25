@@ -4,7 +4,7 @@
             [status-im.transport.message.protocol :as protocol]
             [status-im.utils.fx :as fx]))
 
-(defrecord ContactRequest [name profile-image address fcm-token]
+(defrecord ContactRequest [name profile-image address fcm-token message]
   protocol/StatusMessage
   (validate [this]
     (when (spec/valid? :message/contact-request this)
@@ -21,11 +21,3 @@
   (validate [this]
     (when (spec/valid? :message/contact-update this)
       this)))
-
-(fx/defn remove-chat-filter
-  "Stops the filter for the given chat-id"
-  [{:keys [db]} chat-id]
-  (when-let [filter (get-in db [:transport/filters chat-id])]
-    {:shh/remove-filter {:chat-id chat-id
-                         :filter filter}}))
-

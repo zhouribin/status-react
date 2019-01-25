@@ -1476,7 +1476,7 @@
  :contact.ui/send-message-pressed
  [(re-frame/inject-cofx :random-id-generator)]
  (fn [cofx [_ {:keys [public-key]}]]
-   (contact/add-contact-and-open-chat cofx public-key)))
+   (chat/start-chat cofx public-key {:navigation-reset? true})))
 
 (handlers/register-handler-fx
  :contact.ui/contact-code-submitted
