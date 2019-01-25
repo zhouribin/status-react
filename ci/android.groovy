@@ -3,11 +3,15 @@ cmn = load 'ci/common.groovy'
 def bundle(type = 'nightly') {
   /* Disable Gradle Daemon https://stackoverflow.com/questions/38710327/jenkins-builds-fail-using-the-gradle-daemon */
   def gradleOpt = "-PbuildUrl='${currentBuild.absoluteUrl}' -Dorg.gradle.daemon=false "
+  /* Default type of build is a debug build */
+  def assemble = 'assembleDebug'
 
   if (type == 'pr') { /* PR builds shouldn't replace normal releases */
     env.STATUS_APP_NAME = 'im.status.ethereum.pr'
+    assemble = 'assemblePr'
   } else if (type == 'release') {
     gradleOpt += "-PreleaseVersion='${cmn.version()}'"
+    assemble = 'assembleRelease'
   }
 
   dir('android') {
@@ -22,7 +26,7 @@ def bundle(type = 'nightly') {
         passwordVariable: 'STATUS_RELEASE_KEY_PASSWORD'
       )
     ]) {
-      sh "./gradlew assembleRelease ${gradleOpt}"
+      sh "./gradlew ${assemble} ${gradleOpt}"
     }
   }
   def pkg = cmn.pkgFilename(type, 'apk')
