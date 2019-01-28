@@ -47,6 +47,7 @@
    :smartz             (js/require "./resources/images/contacts/smartz.png")
    :snt-voting         (js/require "./resources/images/contacts/snt-voting.png")
    :superrare          (js/require "./resources/images/contacts/superrare.png")
+   :aragon             (js/require "./resources/images/contacts/aragon.png")
 
    :ddex               (js/require "./resources/images/contacts/ddex.png")
    :emoon              (js/require "./resources/images/contacts/emoon.png")

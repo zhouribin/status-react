@@ -141,7 +141,11 @@
              :photo-path  "contacts://livepeer"
              :description "Decentralized video broadcasting"}]}
    {:title (i18n/label :t/default-dapps-social-utilities)
-    :data  [{:name        "Civitas"
+    :data  [{:name        "Aragon"
+             :dapp-url    "https://mainnet.aragon.org/"
+             :photo-path  "contacts://aragon"
+             :description "Build unstoppable organizations on Ethereum."}
+            {:name        "Civitas"
              :dapp-url    "https://communities.colu.com/"
              :photo-path  "contacts://civitas"
              :description "Blockchain-powered local communities"}
