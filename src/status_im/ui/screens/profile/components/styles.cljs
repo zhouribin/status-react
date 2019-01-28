@@ -15,7 +15,7 @@
    :justify-content :center})
 
 (defstyle profile-name-text
-  {:padding-vertical 14
+  {:padding-vertical 8
    :font-size        15
    :text-align       :center
    :font-weight      :bold
@@ -24,7 +24,6 @@
 (defstyle profile-three-words
   {:font-size   12
    :text-align  :center
-   :font-weight :bold
    :color       colors/gray})
 
 (defstyle profile-name-input-text

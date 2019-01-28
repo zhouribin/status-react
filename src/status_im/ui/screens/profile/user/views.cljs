@@ -126,6 +126,7 @@
      (when show-backup-seed?
        [profile.components/settings-item
         {:label-kw     :t/backup-your-recovery-phrase
+         :accessibility-label :back-up-recovery-phrase-button
          :action-fn    #(re-frame/dispatch [:navigate-to :backup-seed])
          :icon-content [components.common/counter {:size 22} 1]}])
      [profile.components/settings-item-separator]
@@ -234,7 +235,7 @@
   [list.views/big-list-item
    {:text            (i18n/label :t/share-my-profile)
     :icon                :main-icons/share
-    :accessibility-label :share-button
+    :accessibility-label :share-my-profile-button
     :action-fn           #(re-frame/dispatch [:navigate-to :profile-qr-viewer
                                               {:contact current-account
                                                :source  :public-key

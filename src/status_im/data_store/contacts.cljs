@@ -37,31 +37,50 @@
 
 (defn- get-messages-by-messages-ids
   [message-ids]
-  (-> @core/account-realm
-      (.objects "message")
-      (.filtered (str "(" (core/in-query "message-id" message-ids) ")"))))
+  (when-not (empty message-ids)
+    (-> @core/account-realm
+        (.objects "message")
+        (.filtered (str "(" (core/in-query "message-id" message-ids) ")")))))
 
 (defn- get-statuses-by-messages-ids
   [message-ids]
-  (-> @core/account-realm
-      (.objects "user-status")
-      (.filtered (str "(" (core/in-query "message-id" message-ids) ")"))))
+  (when-not (empty message-ids)
+    (-> @core/account-realm
+        (.objects "user-status")
+        (.filtered (str "(" (core/in-query "message-id" message-ids) ")")))))
+
+(defn- get-user-statuses
+  [public-key]
+  (core/get-by-field @core/account-realm
+                     :user-status
+                     :public-key
+                     public-key))
+
+(defn- get-chat
+  [public-key]
+  (core/single
+   (core/get-by-field @core/account-realm
+                      :chat
+                      :chat-id
+                      public-key)))
 
 (defn block-user-tx
   "Returns tx function for deleting user messages"
   [{:keys [public-key] :as contact} messages-ids]
   (fn [realm]
     (core/create realm :contact contact true)
-    (let [chat (core/single
-                (core/get-by-field realm :chat :chat-id public-key))
-          user-messages (get-messages-by-messages-ids messages-ids)
-          user-messages-statuses (get-statuses-by-messages-ids messages-ids)
-          user-statuses (core/get-by-field realm :user-status :public-key public-key)]
-      (core/delete realm user-messages)
-      (core/delete realm user-messages-statuses)
-      (core/delete realm user-statuses)
-      (when chat
-        (core/delete realm chat)))))
+    (when-let [user-messages
+               (get-messages-by-messages-ids messages-ids)]
+      (core/delete realm user-messages))
+    (when-let [user-messages-statuses
+               (get-statuses-by-messages-ids messages-ids)]
+      (core/delete realm user-messages-statuses))
+    (when-let [user-statuses
+               (get-user-statuses public-key)]
+      (core/delete realm user-statuses))
+    (when-let [chat
+               (get-chat public-key)]
+      (core/delete realm chat))))
 
 (defn delete-contact-tx
   "Returns tx function for deleting contact"

@@ -23,7 +23,7 @@
      [status-bar/status-bar]
      [toolbar.view/simple-toolbar (i18n/label :t/contacts)]
      [react/scroll-view {:style {:background-color colors/white
-                                 :padding-vertical 8}}
+                                 :padding-top 16}}
       [list.views/big-list-item
        {:text                (i18n/label :t/blocked-users)
         :icon                :main-icons/cancel
@@ -42,7 +42,7 @@
     [react/view {:flex 1
                  :background-color colors/white}
      [status-bar/status-bar]
-     [toolbar.view/simple-toolbar (i18n/label :t/blocked-contacts)]
+     [toolbar.view/simple-toolbar (i18n/label :t/blocked-users)]
      [react/scroll-view {:style {:background-color colors/white
                                  :padding-vertical 8}}
       [list.views/flat-list
