@@ -53,7 +53,7 @@
 
 (def merge-contacts (partial merge-with merge-contact))
 
-(def account-mergeable-keys [:name :photo-path :last-updated])
+(def account-mergeable-keys [:name :blocked? :photo-path :last-updated])
 
 (defn merge-account [local remote]
   (if (> (:last-updated remote) (:last-updated local))
