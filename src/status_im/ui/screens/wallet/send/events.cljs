@@ -102,11 +102,10 @@
     from-chat? (assoc :from-chat? from-chat?)
     gasPrice (assoc :gas-price (money/bignumber gasPrice))))
 
-(defn extract-qr-code-details [chain qr-uri]
+(defn extract-qr-code-details [chain all-tokens qr-uri]
   {:pre [(keyword? chain) (string? qr-uri)]}
   ;; i don't like fetching all tokens here
-  (let [{:keys [:wallet/all-tokens]} @re-frame.db/app-db
-        qr-uri (string/trim qr-uri)
+  (let [qr-uri (string/trim qr-uri)
         chain-id (ethereum/chain-keyword->chain-id chain)]
     (or (let [m (eip681/parse-uri qr-uri)]
           (merge m (eip681/extract-request-details m all-tokens)))

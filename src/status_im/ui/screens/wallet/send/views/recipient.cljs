@@ -54,12 +54,12 @@
          (when-let [component-thunk (some-> tab-map tab-name :component)]
            [component-thunk])]))))
 
-(defn open-qr-scanner [chain text-input transaction]
+(defn open-qr-scanner [chain all-tokens text-input transaction]
   (.blur @text-input)
   (re-frame/dispatch [:navigate-to :recipient-qr-code
                       {:on-recipient
                        (fn [qr-data]
-                         (if-let [parsed-qr-data (events/extract-qr-code-details chain qr-data)]
+                         (if-let [parsed-qr-data (events/extract-qr-code-details chain all-tokens qr-data)]
                            (let [{:keys [chain-id]} parsed-qr-data
                                  tx-data            (events/qr-data->transaction-data parsed-qr-data)]
                              (if (= chain-id (ethereum/chain-keyword->chain-id chain))
@@ -72,7 +72,7 @@
                              :content             (i18n/label :t/wallet-invalid-address {:data qr-data})
                              :cancel-button-text  (i18n/label :t/see-it-again)
                              :confirm-button-text (i18n/label :t/got-it)
-                             :on-cancel           (partial open-qr-scanner chain text-input transaction)})))}]))
+                             :on-cancel           (partial open-qr-scanner chain all-tokens text-input transaction)})))}]))
 
 (defn update-recipient [chain transaction error-message value]
   (if (ens/is-valid-eth-name? value)
@@ -87,7 +87,7 @@
 
 (defn choose-address-view
   "A view that allows you to choose an address"
-  [{:keys [chain transaction on-address]}]
+  [{:keys [chain all-tokens transaction on-address]}]
   {:pre [(keyword? chain) (fn? on-address)]}
   (fn []
     (let [error-message (reagent/atom nil)
@@ -139,7 +139,7 @@
                                  :on-press         (fn []
                                                      (re-frame/dispatch
                                                       [:request-permissions {:permissions [:camera]
-                                                                             :on-allowed (partial open-qr-scanner chain text-input transaction)
+                                                                             :on-allowed (partial open-qr-scanner chain all-tokens text-input transaction)
                                                                              :on-denied  #(utils/set-timeout
                                                                                            (fn []
                                                                                              (utils/show-popup (i18n/label :t/error)
@@ -204,7 +204,7 @@
                       :key-fn    :address
                       :render-fn (partial render-contact on-contact)}]]))
 
-(defn render-choose-recipient [{:keys [modal? contacts transaction network network-status]}]
+(defn render-choose-recipient [{:keys [modal? contacts all-tokens transaction network network-status]}]
   (let [transaction     (reagent/atom transaction)
         chain           (ethereum/network->chain-keyword network)
         native-currency (tokens/native-currency chain)
@@ -216,6 +216,7 @@
       {:address  {:name      (i18n/label :t/wallet-address-tab-title)
                   :component (choose-address-view
                               {:chain       chain
+                               :all-tokens  all-tokens
                                :transaction transaction
                                :on-address  #(re-frame/dispatch [:navigate-to :wallet-choose-amount
                                                                  {:transaction     (swap! transaction assoc :to %)
