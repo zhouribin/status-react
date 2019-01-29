@@ -198,7 +198,7 @@
             :font-size    12
             :bottom-value -3}]])
        [react/view {:style {:border-radius      8
-                            :background-color   colors/gray-light
+                            :background-color   colors/gray-lighter
                             :padding-vertical   16
                             :padding-horizontal 16
                             :flex-direction     :row
@@ -212,8 +212,9 @@
                                                (reset! gas-price-error nil))
                                              (on-gas-price-input-change x))
                            :default-value  gas-price-input
-                           :style          {:font-size 15
-                                            :flex      1}}]
+                           :style          {:font-size        15
+                                            :flex             1
+                                            :background-color colors/gray-lighter}}]
         [react/text (i18n/label :t/gwei)]]
        [react/text {:style {:color     colors/gray
                             :font-size 12}}
@@ -226,7 +227,7 @@
             :font-size    12
             :bottom-value -3}]])
        [react/view {:style {:border-radius      8
-                            :background-color   colors/gray-light
+                            :background-color   colors/gray-lighter
                             :padding-vertical   16
                             :padding-horizontal 16
                             :flex-direction     :row
@@ -240,8 +241,9 @@
                                                (reset! gas-error nil))
                                              (on-gas-input-change x))
                            :default-value  gas-input
-                           :style          {:font-size 15
-                                            :flex      1}}]]
+                           :style          {:font-size        15
+                                            :flex             1
+                                            :background-color colors/gray-lighter}}]]
        [react/text {:style {:color     colors/gray
                             :font-size 12}}
         (i18n/label :t/gas-limit-explanation)]])))
