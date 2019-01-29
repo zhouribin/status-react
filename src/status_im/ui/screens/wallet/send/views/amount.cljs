@@ -276,7 +276,7 @@
 
                [react/view {:flex-direction :row
                             :padding        3}
-                [common/action-button {:underlay-color   colors/white-transparent
+                [common/action-button {:underlay-color   (colors/alpha colors/black 0.2)
                                        :background-color colors/black-transparent
                                        :on-press         #(swap! state-atom update :inverted not)}
                  [react/view {:flex-direction :row}
