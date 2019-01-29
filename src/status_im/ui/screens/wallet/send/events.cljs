@@ -24,6 +24,8 @@
             [status-im.utils.types :as types]
             [status-im.utils.utils :as utils]))
 
+(def wrong-password-error-code 5)
+
 ;;;; FX
 
 (defn- send-ethers [params on-completed password]
@@ -53,7 +55,7 @@
     (if error
       ;; ERROR
       (do (utils/show-popup (i18n/label :t/error)
-                            (if (= (:code error) 5)
+                            (if (= (:code error) wrong-password-error-code)
                               (i18n/label :t/wrong-password)
                               (:message error)))
           (reset! in-progress? false))
