@@ -42,7 +42,7 @@
     (str total-amount " " (name (:symbol transaction)))]
    (when-not (= :ETH (:symbol transaction))
      [react/text {:style {:color       colors/black
-                          :margin-top  13
+                          :margin-top  5
                           :font-weight :bold
                           :font-size   22
                           :line-height 28
@@ -123,7 +123,7 @@
          (str "Send" " " total-amount " " (name (:symbol transaction)))]
         (when-not (= :ETH (:symbol transaction))
           [react/text {:style {:color       colors/black
-                               :margin-top  13
+                               :margin-top  5
                                :font-weight :bold
                                :font-size   22
                                :line-height 28
