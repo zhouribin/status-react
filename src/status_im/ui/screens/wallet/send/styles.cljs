@@ -106,7 +106,7 @@
 (defstyle choose-recipient-text-input
   {:color             colors/white
    :font-size         30
-   :font-weight       :bold
+   :font-weight       "500"
    :android           {:width "75%"}
    :ios               {:min-width 236}
    :margin-horizontal 24})

@@ -240,7 +240,7 @@
                   :selection-color        colors/green
                   :style                  {:color               colors/white
                                            :font-size           30
-                                           :font-weight         :bold
+                                           :font-weight         "500"
                                            :padding-horizontal  10
                                            :max-width           290
                                            :text-align-vertical :center}}]
@@ -248,7 +248,7 @@
                                                             colors/white
                                                             colors/blue-shadow)
                                      :font-size           30
-                                     :font-weight         :bold
+                                     :font-weight         "500"
                                      :text-align-vertical :center}}
                  input-symbol]]
                [react/view {}
