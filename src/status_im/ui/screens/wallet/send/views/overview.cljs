@@ -95,7 +95,8 @@
        [tooltip/tooltip (i18n/label :t/wallet-passphrase-reminder)
         {:bottom-value 12
          :color        colors/white
-         :text-color   colors/blue}]
+         :text-color   colors/blue
+         :font-size    12}]
        [react/view {:style {:background-color        colors/white
                             :border-top-left-radius  8
                             :border-top-right-radius 8}}
