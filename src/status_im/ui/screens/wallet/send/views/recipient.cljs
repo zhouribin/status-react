@@ -113,6 +113,7 @@
             :default-value          (or (:to-ens @transaction) (:to @transaction))
             :selection-color        colors/green
             :accessibility-label    :recipient-address-input
+            :keyboard-appearance    :dark
             :style                  styles/choose-recipient-text-input}]]
          [react/view {:flex 1}]
          [react/view {:flex-direction :row

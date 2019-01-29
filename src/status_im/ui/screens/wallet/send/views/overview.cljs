@@ -152,6 +152,7 @@
                                    :letter-spacing    -0.2
                                    :height            52}
           :accessibility-label    :enter-password-input
+          :keyboard-appearance    :dark
           :auto-capitalize        :none}]
         [react/view {:style {:flex-direction  :row
                              :justify-content :center

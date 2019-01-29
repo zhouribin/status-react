@@ -204,17 +204,18 @@
                             :flex-direction     :row
                             :align-items        :center
                             :margin-vertical    7}}
-        [react/text-input {:keyboard-type  :numeric
-                           :placeholder    "0"
-                           :on-change-text (fn [x]
-                                             (if-not (money/bignumber x)
-                                               (reset! gas-price-error (i18n/label :t/invalid-number-format))
-                                               (reset! gas-price-error nil))
-                                             (on-gas-price-input-change x))
-                           :default-value  gas-price-input
-                           :style          {:font-size        15
-                                            :flex             1
-                                            :background-color colors/gray-lighter}}]
+        [react/text-input {:keyboard-type       :numeric
+                           :placeholder         "0"
+                           :on-change-text      (fn [x]
+                                                  (if-not (money/bignumber x)
+                                                    (reset! gas-price-error (i18n/label :t/invalid-number-format))
+                                                    (reset! gas-price-error nil))
+                                                  (on-gas-price-input-change x))
+                           :default-value       gas-price-input
+                           :keyboard-appearance :dark
+                           :style               {:font-size        15
+                                                 :flex             1
+                                                 :background-color colors/gray-lighter}}]
         [react/text (i18n/label :t/gwei)]]
        [react/text {:style {:color     colors/gray
                             :font-size 12}}
@@ -233,17 +234,18 @@
                             :flex-direction     :row
                             :align-items        :flex-end
                             :margin-vertical    7}}
-        [react/text-input {:keyboard-type  :numeric
-                           :placeholder    "0"
-                           :on-change-text (fn [x]
-                                             (if-not (money/bignumber x)
-                                               (reset! gas-error (i18n/label :t/invalid-number-format))
-                                               (reset! gas-error nil))
-                                             (on-gas-input-change x))
-                           :default-value  gas-input
-                           :style          {:font-size        15
-                                            :flex             1
-                                            :background-color colors/gray-lighter}}]]
+        [react/text-input {:keyboard-type       :numeric
+                           :placeholder         "0"
+                           :on-change-text      (fn [x]
+                                                  (if-not (money/bignumber x)
+                                                    (reset! gas-error (i18n/label :t/invalid-number-format))
+                                                    (reset! gas-error nil))
+                                                  (on-gas-input-change x))
+                           :default-value       gas-input
+                           :keyboard-appearance :dark
+                           :style               {:font-size        15
+                                                 :flex             1
+                                                 :background-color colors/gray-lighter}}]]
        [react/text {:style {:color     colors/gray
                             :font-size 12}}
         (i18n/label :t/gas-limit-explanation)]])))

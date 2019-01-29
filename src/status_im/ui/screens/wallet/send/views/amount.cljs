@@ -238,6 +238,7 @@
                   :max-length             20
                   :default-value          input-amount
                   :selection-color        colors/green
+                  :keyboard-appearance    :dark
                   :style                  {:color               colors/white
                                            :font-size           30
                                            :font-weight         "500"
