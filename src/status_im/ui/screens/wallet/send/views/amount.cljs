@@ -305,7 +305,9 @@
                                                                                                               (money/bignumber input-amount)
                                                                                                               (:symbol coin)
                                                                                                               (:decimals coin)))}])}
-                   [react/text {:style {:color       (if disabled? colors/white colors/blue)
+                   [react/text {:style {:color       (if disabled?
+                                                       (colors/alpha colors/white 0.3)
+                                                       colors/blue)
                                         :font-size   15
                                         :line-height 22}}
                     (i18n/label :t/next)]])]]]))]))))

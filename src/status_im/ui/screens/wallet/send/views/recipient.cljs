@@ -161,7 +161,9 @@
                                    :on-press         #(events/chosen-recipient chain (:to @transaction) on-address
                                                                                (fn on-error [_]
                                                                                  (reset! error-message (i18n/label :t/invalid-address))))}
-             [react/text {:style {:color       (if disabled? colors/white colors/blue)
+             [react/text {:style {:color       (if disabled?
+                                                 (colors/alpha colors/white 0.3)
+                                                 colors/blue)
                                   :font-size   15
                                   :line-height 22}}
               (i18n/label :t/next)]])]]))))
