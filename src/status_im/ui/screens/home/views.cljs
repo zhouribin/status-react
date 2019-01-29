@@ -33,7 +33,9 @@
                    (str "syncing " (:currentBlock sync-state) " of " (:highestBlock sync-state) " blocks...")
                    (str "not syncing")))]]]
          [toolbar/content-wrapper
-          [components.common/logo styles/toolbar-logo]]))
+          [react/touchable-highlight
+           {:on-press #(re-frame/dispatch [:set :bottom-sheet true])}
+           [components.common/logo styles/toolbar-logo]]]))
      [toolbar/actions
       (when platform/ios?
         [(-> (toolbar.actions/add true #(re-frame/dispatch [:navigate-to :new]))

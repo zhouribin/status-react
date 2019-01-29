@@ -71,7 +71,9 @@
             [re-frame.core :as re-frame]
             [taoensso.timbre :as log]
             [status-im.utils.platform :as platform]
-            [status-im.utils.config :as config]))
+            [status-im.utils.config :as config]
+            [status-im.ui.components.bottom-sheet.view :as bottom-sheet]
+            [status-im.ui.components.colors :as colors]))
 
 (defn wrap [view-id component]
   (fn []
@@ -365,6 +367,7 @@
 
 (defn main []
   (let [view-id        (re-frame/subscribe [:get :view-id])
+        bottom-sheet   (re-frame/subscribe [:get :bottom-sheet])
         main-component (atom nil)]
     (reagent/create-class
      {:component-did-mount
@@ -401,13 +404,36 @@
       :reagent-render
       (fn []
         (when (and @view-id main-component)
-          [:> @main-component
-           {:ref            (fn [r]
-                              (navigation/set-navigator-ref r)
-                              (when (and
-                                     platform/android?
-                                     (not js/goog.DEBUG)
-                                     (not (contains? #{:intro :login :progress} @view-id)))
-                                (navigation/navigate-to @view-id)))
-            ;; see https://reactnavigation.org/docs/en/state-persistence.html#development-mode
-            :persistenceKey (when js/goog.DEBUG rand-label)}]))})))
+          [react/view {:flex 1}
+           [:> @main-component
+            {:ref            (fn [r]
+                               (navigation/set-navigator-ref r)
+                               (when (and
+                                      platform/android?
+                                      (not js/goog.DEBUG)
+                                      (not (contains? #{:intro :login :progress} @view-id)))
+                                 (navigation/navigate-to @view-id)))
+             ;; see https://reactnavigation.org/docs/en/state-persistence.html#development-mode
+             :persistenceKey (when js/goog.DEBUG rand-label)}]
+           [bottom-sheet/bottom-sheet
+            {:show?          @bottom-sheet
+             :content-height 320
+             :on-cancel      #(re-frame.core/dispatch [:set :bottom-sheet false])}
+            [react/view {:flex             1
+                         :align-self       :stretch
+                         :background-color colors/blue-light}
+             [react/view
+              {:style {:flex            0.5
+                       :justify-content :center
+                       :align-items     :center
+                       :align-self      :stretch}}
+              [react/text "WUT???????"]]
+             [react/view
+              {:style {:flex            0.5
+                       :justify-content :center
+                       :align-items     :center
+                       :align-self      :stretch}}
+              [react/text {:on-press #(re-frame/dispatch [:set
+                                                          :bottom-sheet false])
+                           :style    {:color :red}}
+               "CLOSE IT"]]]]]))})))
